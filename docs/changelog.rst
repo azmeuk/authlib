@@ -12,6 +12,7 @@ Version 1.5.2
 **Unreleased**
 
 - Fix invalid characters in ``error_description``. :issue:`720`
+- Forbid fragments in ``redirect_uris``. :issue:`714`
 
 Version 1.5.1
 -------------
