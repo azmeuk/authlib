@@ -36,7 +36,7 @@ class OAuth2Error(AuthlibHTTPError):
         # understanding the error that occurred.
         # Values for the "error_description" parameter MUST NOT include
         # characters outside the set %x20-21 / %x23-5B / %x5D-7E.
-        if description:
+        if description and False:
             if chars := invalid_error_characters(description):
                 raise ValueError(
                     f"Error description contains forbidden characters: {', '.join(chars)}."

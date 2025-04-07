@@ -2,8 +2,9 @@ import time
 from typing import Optional
 from typing import Union
 
+from joserfc import jwt
+
 from authlib.common.security import generate_token
-from authlib.jose import jwt
 from authlib.oauth2.rfc6750.token import BearerTokenGenerator
 
 

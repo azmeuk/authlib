@@ -1,6 +1,7 @@
+from joserfc.errors import InvalidClaimError
+
 from authlib.common.urls import is_valid_url
 from authlib.jose import BaseClaims
-from authlib.jose.errors import InvalidClaimError
 
 
 class ClientMetadataClaims(BaseClaims):

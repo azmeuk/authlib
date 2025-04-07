@@ -1,23 +1,23 @@
-from authlib.jose.errors import InvalidClaimError
-from authlib.jose.rfc7519 import JWTClaims
+from joserfc import jwt
+from joserfc.errors import InvalidClaimError
 
 
-class JWTAccessTokenClaims(JWTClaims):
-    REGISTERED_CLAIMS = JWTClaims.REGISTERED_CLAIMS + [
-        "client_id",
-        "auth_time",
-        "acr",
-        "amr",
-        "scope",
-        "groups",
-        "roles",
-        "entitlements",
-    ]
+class JWTAccessTokenClaims(jwt.JWTClaimsRegistry):
+    #    REGISTERED_CLAIMS = JWTClaims.REGISTERED_CLAIMS + [
+    #        "client_id",
+    #        "auth_time",
+    #        "acr",
+    #        "amr",
+    #        "scope",
+    #        "groups",
+    #        "roles",
+    #        "entitlements",
+    #    ]
 
-    def validate(self, **kwargs):
+    def validate(self, claims):
         self.validate_typ()
 
-        super().validate(**kwargs)
+        super().validate(claims)
         self.validate_client_id()
         self.validate_auth_time()
         self.validate_acr()

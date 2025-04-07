@@ -1,7 +1,8 @@
 import time
 
+from joserfc import jwt
+
 from authlib.common.security import generate_token
-from authlib.jose import jwt
 
 
 def sign_jwt_bearer_assertion(

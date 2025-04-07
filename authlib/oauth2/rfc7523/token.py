@@ -1,7 +1,8 @@
 import time
 
+from joserfc import jwt
+
 from authlib.common.encoding import to_native
-from authlib.jose import jwt
 
 
 class JWTBearerTokenGenerator:

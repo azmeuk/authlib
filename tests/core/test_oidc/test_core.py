@@ -1,7 +1,8 @@
 import unittest
 
-from authlib.jose.errors import InvalidClaimError
-from authlib.jose.errors import MissingClaimError
+from joserfc.errors import InvalidClaimError
+from joserfc.errors import MissingClaimError
+
 from authlib.oidc.core import CodeIDToken
 from authlib.oidc.core import HybridIDToken
 from authlib.oidc.core import ImplicitIDToken

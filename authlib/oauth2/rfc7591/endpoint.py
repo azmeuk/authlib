@@ -2,10 +2,11 @@ import binascii
 import os
 import time
 
+from joserfc import jwt
+from joserfc.errors import JoseError
+
 from authlib.common.security import generate_token
 from authlib.consts import default_json_headers
-from authlib.jose import JoseError
-from authlib.jose import JsonWebToken
 
 from ..rfc6749 import AccessDeniedError
 from ..rfc6749 import InvalidRequestError
@@ -84,8 +85,9 @@ class ClientRegistrationEndpoint:
             raise UnapprovedSoftwareStatementError()
 
         try:
-            jwt = JsonWebToken(self.software_statement_alg_values_supported)
-            claims = jwt.decode(software_statement, key)
+            claims = jwt.decode(
+                software_statement, key, self.software_statement_alg_values_supported
+            )
             # there is no need to validate claims
             return claims
         except JoseError as exc:

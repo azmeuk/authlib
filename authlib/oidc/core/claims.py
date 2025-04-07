@@ -1,10 +1,11 @@
 import hmac
 import time
 
+from joserfc.errors import InvalidClaimError
+from joserfc.errors import MissingClaimError
+
 from authlib.common.encoding import to_bytes
 from authlib.jose import JWTClaims
-from authlib.jose.errors import InvalidClaimError
-from authlib.jose.errors import MissingClaimError
 
 from .util import create_half_hash
 

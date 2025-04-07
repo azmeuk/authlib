@@ -1,7 +1,8 @@
+import json
 import logging
 
-from authlib.jose import jwt
-from authlib.jose.errors import JoseError
+from joserfc import jwt
+from joserfc.errors import JoseError
 
 from ..rfc6749 import InvalidClientError
 
@@ -64,14 +65,15 @@ class JWTBearerClientAssertion:
         .. _`Section 3.1`: https://tools.ietf.org/html/rfc7523#section-3.1
         """
         try:
-            claims = jwt.decode(
-                assertion, resolve_key, claims_options=self.create_claims_options()
+            token = jwt.decode(assertion, resolve_key)
+            claims = jwt.JWTClaimsRegistry(
+                leeway=self.leeway, **self.create_claims_options()
             )
-            claims.validate(leeway=self.leeway)
+            claims.validate(token.claims)
         except JoseError as e:
             log.debug("Assertion Error: %r", e)
             raise InvalidClientError(description=e.description) from e
-        return claims
+        return token
 
     def authenticate_client(self, client):
         if client.check_endpoint_auth_method(self.CLIENT_AUTH_METHOD, "token"):
@@ -81,10 +83,11 @@ class JWTBearerClientAssertion:
         )
 
     def create_resolve_key_func(self, query_client, request):
-        def resolve_key(headers, payload):
+        def resolve_key(sig):
             # https://tools.ietf.org/html/rfc7523#section-3
             # For client authentication, the subject MUST be the
             # "client_id" of the OAuth client
+            payload = json.loads(sig.payload.decode())
             client_id = payload["sub"]
             client = query_client(client_id)
             if not client:
@@ -92,7 +95,7 @@ class JWTBearerClientAssertion:
                     description="The client does not exist on this server."
                 )
             request.client = client
-            return self.resolve_client_public_key(client, headers)
+            return self.resolve_client_public_key(client, sig.headers())
 
         return resolve_key
 

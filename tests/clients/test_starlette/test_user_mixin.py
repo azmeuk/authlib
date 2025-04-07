@@ -1,10 +1,10 @@
 import pytest
 from httpx import ASGITransport
+from joserfc.errors import InvalidClaimError
 from starlette.requests import Request
 
 from authlib.integrations.starlette_client import OAuth
 from authlib.jose import JsonWebKey
-from authlib.jose.errors import InvalidClaimError
 from authlib.oidc.core.grants.util import generate_id_token
 
 from ..asgi_helper import AsyncPathMapDispatch

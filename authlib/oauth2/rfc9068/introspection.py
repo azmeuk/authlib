@@ -1,7 +1,8 @@
+from joserfc.errors import ExpiredTokenError
+from joserfc.errors import InvalidClaimError
+
 from authlib.common.errors import ContinueIteration
 from authlib.consts import default_json_headers
-from authlib.jose.errors import ExpiredTokenError
-from authlib.jose.errors import InvalidClaimError
 from authlib.oauth2.rfc6750.errors import InvalidTokenError
 from authlib.oauth2.rfc9068.token_validator import JWTBearerTokenValidator
 

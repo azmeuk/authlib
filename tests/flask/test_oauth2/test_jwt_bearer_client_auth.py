@@ -1,4 +1,5 @@
 from flask import json
+from joserfc.jwk import JWKRegistry
 
 from authlib.oauth2.rfc6749.grants import ClientCredentialsGrant
 from authlib.oauth2.rfc7523 import JWTBearerClientAssertion
@@ -25,7 +26,7 @@ class JWTClientAuth(JWTBearerClientAssertion):
 
     def resolve_client_public_key(self, client, headers):
         if headers["alg"] == "RS256":
-            return read_file_path("jwk_public.json")
+            return JWKRegistry.import_key(read_file_path("jwk_public.json"))
         return client.client_secret
 
 
@@ -150,7 +151,9 @@ class ClientCredentialsTest(TestCase):
                 "grant_type": "client_credentials",
                 "client_assertion_type": JWTBearerClientAssertion.CLIENT_ASSERTION_TYPE,
                 "client_assertion": private_key_jwt_sign(
-                    private_key=read_file_path("jwk_private.json"),
+                    private_key=JWKRegistry.import_key(
+                        read_file_path("jwk_private.json")
+                    ),
                     client_id="credential-client",
                     token_endpoint="https://localhost/oauth/token",
                 ),

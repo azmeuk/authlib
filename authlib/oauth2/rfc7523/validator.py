@@ -1,9 +1,10 @@
 import logging
 import time
 
-from authlib.jose import JoseError
+from joserfc import jwt
+from joserfc.errors import JoseError
+
 from authlib.jose import JWTClaims
-from authlib.jose import jwt
 
 from ..rfc6749 import TokenMixin
 from ..rfc6750 import BearerTokenValidator

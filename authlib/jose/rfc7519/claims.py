@@ -1,9 +1,9 @@
 import time
 
-from authlib.jose.errors import ExpiredTokenError
-from authlib.jose.errors import InvalidClaimError
-from authlib.jose.errors import InvalidTokenError
-from authlib.jose.errors import MissingClaimError
+from joserfc.errors import ExpiredTokenError
+from joserfc.errors import InvalidClaimError
+from joserfc.errors import InvalidTokenError
+from joserfc.errors import MissingClaimError
 
 
 class BaseClaims(dict):

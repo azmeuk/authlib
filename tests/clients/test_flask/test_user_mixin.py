@@ -2,10 +2,10 @@ from unittest import TestCase
 from unittest import mock
 
 from flask import Flask
+from joserfc.errors import InvalidClaimError
 
 from authlib.integrations.flask_client import OAuth
 from authlib.jose import JsonWebKey
-from authlib.jose.errors import InvalidClaimError
 from authlib.oidc.core.grants.util import generate_id_token
 
 from ..util import get_bearer_token

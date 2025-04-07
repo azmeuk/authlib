@@ -1,6 +1,7 @@
 from unittest import TestCase
 
-from authlib.jose.errors import InvalidClaimError
+from joserfc.errors import InvalidClaimError
+
 from authlib.oauth2.rfc7591 import ClientMetadataClaims
 
 

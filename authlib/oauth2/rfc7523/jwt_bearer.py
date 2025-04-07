@@ -1,7 +1,8 @@
+import json
 import logging
 
-from authlib.jose import JoseError
-from authlib.jose import jwt
+from joserfc import jwt
+from joserfc.errors import JoseError
 
 from ..rfc6749 import BaseGrant
 from ..rfc6749 import InvalidClientError
@@ -56,18 +57,18 @@ class JWTBearerGrant(BaseGrant, TokenEndpointMixin):
         .. _`Section 3.1`: https://tools.ietf.org/html/rfc7523#section-3.1
         """
         try:
-            claims = jwt.decode(
-                assertion, self.resolve_public_key, claims_options=self.CLAIMS_OPTIONS
-            )
-            claims.validate(leeway=self.LEEWAY)
+            token = jwt.decode(assertion, self.resolve_public_key)
+            claims = jwt.JWTClaimsRegistry(leeway=self.LEEWAY, **self.CLAIMS_OPTIONS)
+            claims.validate(token.claims)
         except JoseError as e:
             log.debug("Assertion Error: %r", e)
             raise InvalidGrantError(description=e.description) from e
-        return claims
+        return token.claims
 
-    def resolve_public_key(self, headers, payload):
+    def resolve_public_key(self, sig):
+        payload = json.loads(sig.payload)
         client = self.resolve_issuer_client(payload["iss"])
-        return self.resolve_client_key(client, headers, payload)
+        return self.resolve_client_key(client, sig.headers(), payload)
 
     def validate_token_request(self):
         """The client makes a request to the token endpoint by sending the
@@ -160,15 +161,15 @@ class JWTBearerGrant(BaseGrant, TokenEndpointMixin):
         "jwks" column on client table, e.g.::
 
             def resolve_client_key(self, client, headers, payload):
-                # from authlib.jose import JsonWebKey
+                # from joserfc import KeySet
 
-                key_set = JsonWebKey.import_key_set(client.jwks)
+                key_set = KeySet.import_key_set(client.jwks)
                 return key_set.find_by_kid(headers["kid"])
 
         :param client: instance of OAuth client model
         :param headers: headers part of the JWT
         :param payload: payload part of the JWT
-        :return: ``authlib.jose.Key`` instance
+        :return: ``joserfc.jwk.KeySet`` instance
         """
         raise NotImplementedError()
 

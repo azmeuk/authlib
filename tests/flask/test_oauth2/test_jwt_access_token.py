@@ -3,6 +3,7 @@ import time
 import pytest
 from flask import json
 from flask import jsonify
+from joserfc import jwk
 
 from authlib.common.security import generate_token
 from authlib.common.urls import url_decode
@@ -34,7 +35,7 @@ from .oauth2_server import create_authorization_server
 def create_token_validator(issuer, resource_server, jwks):
     class MyJWTBearerTokenValidator(JWTBearerTokenValidator):
         def get_jwks(self):
-            return jwks
+            return jwk.KeySet.import_key_set(jwks)
 
     validator = MyJWTBearerTokenValidator(
         issuer=issuer, resource_server=resource_server
@@ -102,7 +103,7 @@ def create_resource_protector(app, validator):
 def create_token_generator(authorization_server, issuer, jwks):
     class MyJWTBearerTokenGenerator(JWTBearerTokenGenerator):
         def get_jwks(self):
-            return jwks
+            return jwk.KeySet.import_key_set(jwks)
 
     token_generator = MyJWTBearerTokenGenerator(issuer=issuer)
     authorization_server.register_token_generator("default", token_generator)
@@ -112,7 +113,7 @@ def create_token_generator(authorization_server, issuer, jwks):
 def create_introspection_endpoint(app, authorization_server, issuer, jwks):
     class MyJWTIntrospectionEndpoint(JWTIntrospectionEndpoint):
         def get_jwks(self):
-            return jwks
+            return jwk.KeySet.import_key_set(jwks)
 
         def check_permission(self, token, client, request):
             return client.client_id == "client-id"
@@ -132,7 +133,7 @@ def create_introspection_endpoint(app, authorization_server, issuer, jwks):
 def create_revocation_endpoint(app, authorization_server, issuer, jwks):
     class MyJWTRevocationEndpoint(JWTRevocationEndpoint):
         def get_jwks(self):
-            return jwks
+            return jwk.KeySet.import_key_set(jwks)
 
     endpoint = MyJWTRevocationEndpoint(issuer=issuer)
     authorization_server.register_endpoint(endpoint)

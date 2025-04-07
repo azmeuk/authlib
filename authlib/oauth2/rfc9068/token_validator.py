@@ -6,9 +6,10 @@ Implementation of Validating JWT Access Tokens per `Section 4`_.
 .. _`Section 7`: https://www.rfc-editor.org/rfc/rfc9068.html#name-validating-jwt-access-token
 """
 
-from authlib.jose import jwt
-from authlib.jose.errors import DecodeError
-from authlib.jose.errors import JoseError
+from joserfc import jwt
+from joserfc.errors import DecodeError
+from joserfc.errors import JoseError
+
 from authlib.oauth2.rfc6750.errors import InsufficientScopeError
 from authlib.oauth2.rfc6750.errors import InvalidTokenError
 from authlib.oauth2.rfc6750.validator import BearerTokenValidator
@@ -110,12 +111,13 @@ class JWTBearerTokenValidator(BearerTokenValidator):
         # of 'alg' is 'none'. The resource server MUST use the keys provided by the
         # authorization server.
         try:
-            return jwt.decode(
+            token = jwt.decode(
                 token_string,
                 key=jwks,
-                claims_cls=JWTAccessTokenClaims,
-                claims_options=claims_options,
             )
+            claims = JWTAccessTokenClaims(**claims_options)
+            claims.validate(token.claims)
+            return token.claims
         except DecodeError as exc:
             raise InvalidTokenError(
                 realm=self.realm, extra_attributes=self.extra_attributes

@@ -1,7 +1,8 @@
+from joserfc.errors import InvalidClaimError
+from joserfc.jwk import KeySet
+
 from authlib.common.urls import is_valid_url
 from authlib.jose import BaseClaims
-from authlib.jose import JsonWebKey
-from authlib.jose.errors import InvalidClaimError
 
 from ..rfc6749 import scope_to_list
 
@@ -180,7 +181,7 @@ class ClientMetadataClaims(BaseClaims):
 
             jwks = self["jwks"]
             try:
-                key_set = JsonWebKey.import_key_set(jwks)
+                key_set = KeySet.import_key_set(jwks)
                 if not key_set:
                     raise InvalidClaimError("jwks")
             except ValueError as exc:
