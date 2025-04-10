@@ -53,11 +53,13 @@ def validate_nonce(request, exists_nonce, required=False):
     nonce = request.data.get("nonce")
     if not nonce:
         if required:
-            raise InvalidRequestError("Missing 'nonce' in request.")
+            raise InvalidRequestError(
+                "Missing 'nonce' in request.", redirect_uri=request.redirect_uri
+            )
         return True
 
     if exists_nonce(nonce, request):
-        raise InvalidRequestError("Replay attack")
+        raise InvalidRequestError("Replay attack", redirect_uri=request.redirect_uri)
 
 
 def generate_id_token(
