@@ -263,6 +263,28 @@ class JWKTest(unittest.TestCase):
         with pytest.raises(ValueError):
             JsonWebKey.import_key_set("invalid")
 
+    def test_find_by_kid_with_use(self):
+        key1 = OctKey.import_key("secret", {"kid": "abc", "use": "sig"})
+        key2 = OctKey.import_key("secret", {"kid": "abc", "use": "enc"})
+
+        key_set = KeySet([key1, key2])
+        key = key_set.find_by_kid("abc", use="sig")
+        self.assertEqual(key, key1)
+
+        key = key_set.find_by_kid("abc", use="enc")
+        self.assertEqual(key, key2)
+
+    def test_find_by_kid_with_alg(self):
+        key1 = OctKey.import_key("secret", {"kid": "abc", "alg": "HS256"})
+        key2 = OctKey.import_key("secret", {"kid": "abc", "alg": "dir"})
+
+        key_set = KeySet([key1, key2])
+        key = key_set.find_by_kid("abc", alg="HS256")
+        self.assertEqual(key, key1)
+
+        key = key_set.find_by_kid("abc", alg="dir")
+        self.assertEqual(key, key2)
+
     def test_thumbprint(self):
         # https://tools.ietf.org/html/rfc7638#section-3.1
         data = read_file_path("thumbprint_example.json")
