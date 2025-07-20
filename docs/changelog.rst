@@ -6,6 +6,13 @@ Changelog
 
 Here you can see the full list of changes between each Authlib release.
 
+Version 1.6.1
+-------------
+
+**Released on Jul 20, 2025**
+
+- Filter key set with additional "alg" and "use" parameters.
+
 Version 1.6.0
 -------------
 
