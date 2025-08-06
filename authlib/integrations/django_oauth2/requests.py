@@ -33,7 +33,11 @@ class DjangoOAuth2Payload(OAuth2Payload):
 
 class DjangoOAuth2Request(OAuth2Request):
     def __init__(self, request: HttpRequest):
-        super().__init__(request.method, request.build_absolute_uri(), request.headers)
+        super().__init__(
+            method=request.method,
+            uri=request.build_absolute_uri(),
+            headers=request.headers,
+        )
         self.payload = DjangoOAuth2Payload(request)
         self._request = request
 

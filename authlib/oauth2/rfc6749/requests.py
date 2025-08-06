@@ -65,13 +65,22 @@ class BasicOAuth2Payload(OAuth2Payload):
 
 
 class OAuth2Request(OAuth2Payload):
-    def __init__(self, method: str, uri: str, headers=None):
+    def __init__(self, method: str, uri: str, body=None, headers=None):
         InsecureTransportError.check(uri)
         #: HTTP method
         self.method = method
         self.uri = uri
         #: HTTP headers
         self.headers = headers or {}
+
+        # Store body for backward compatibility but issue deprecation warning if used
+        if body is not None:
+            deprecate(
+                "'body' parameter in OAuth2Request is deprecated. "
+                "Use the payload system instead.",
+                version="1.8",
+            )
+        self._body = body
 
         self.payload = None
 
@@ -88,6 +97,8 @@ class OAuth2Request(OAuth2Payload):
 
     @property
     def form(self):
+        if self._body:
+            return self._body
         raise NotImplementedError()
 
     @property
@@ -153,6 +164,14 @@ class OAuth2Request(OAuth2Payload):
             version="1.8",
         )
         return self.payload.state
+
+    @property
+    def body(self):
+        deprecate(
+            "'request.body' is deprecated. Use the payload system instead.",
+            version="1.8",
+        )
+        return self._body
 
 
 class JsonPayload:
