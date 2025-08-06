@@ -8,6 +8,7 @@ from flask import session
 
 from authlib.common.urls import url_decode
 from authlib.common.urls import urlparse
+from authlib.integrations.base_client.errors import MissingCodeError
 from authlib.integrations.flask_client import FlaskOAuth2App
 from authlib.integrations.flask_client import OAuth
 from authlib.integrations.flask_client import OAuthError
@@ -525,3 +526,31 @@ class FlaskOAuthTest(TestCase):
                 assert resp.text == "hi"
                 with pytest.raises(OAuthError):
                     client.get("https://i.b/api/user")
+
+    def test_oauth2_authorize_missing_code(self):
+        app = Flask(__name__)
+        app.secret_key = "!"
+        oauth = OAuth(app)
+        client = oauth.register(
+            "dev",
+            client_id="dev",
+            client_secret="dev",
+            api_base_url="https://i.b/api",
+            access_token_url="https://i.b/token",
+            authorize_url="https://i.b/authorize",
+        )
+
+        with app.test_request_context():
+            resp = client.authorize_redirect("https://b.com/bar")
+            state = dict(url_decode(urlparse.urlparse(resp.headers["Location"]).query))[
+                "state"
+            ]
+            session_data = session[f"_state_dev_{state}"]
+
+        # Test missing code parameter
+        with app.test_request_context(path=f"/?state={state}"):
+            session[f"_state_dev_{state}"] = session_data
+            with pytest.raises(MissingCodeError) as exc_info:
+                client.authorize_access_token()
+            assert exc_info.value.error == "missing_code"
+            assert "authorization code is missing" in exc_info.value.description

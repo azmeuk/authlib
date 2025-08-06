@@ -13,6 +13,11 @@ class MissingTokenError(OAuthError):
     error = "missing_token"
 
 
+class MissingCodeError(OAuthError):
+    error = "missing_code"
+    description = "The authorization code is missing from the callback request."
+
+
 class TokenExpiredError(OAuthError):
     error = "token_expired"
 
