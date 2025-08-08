@@ -6,6 +6,7 @@ on:
     - 'wip-*'
     paths-ignore:
     - 'docs/**'
+    - 'README.md'
   pull_request:
     branches-ignore:
     - 'wip-*'
