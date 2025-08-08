@@ -12,6 +12,7 @@ Version 1.6.1
 **Released on Jul 20, 2025**
 
 - Filter key set with additional "alg" and "use" parameters.
+- Restore and deprecate ``OAuth2Request`` ``body`` parameter. :issue:`781`
 
 Version 1.6.0
 -------------

@@ -27,7 +27,9 @@ class FlaskOAuth2Payload(OAuth2Payload):
 
 class FlaskOAuth2Request(OAuth2Request):
     def __init__(self, request: Request):
-        super().__init__(request.method, request.url, request.headers)
+        super().__init__(
+            method=request.method, uri=request.url, headers=request.headers
+        )
         self._request = request
         self.payload = FlaskOAuth2Payload(request)
 
