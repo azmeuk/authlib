@@ -1,6 +1,5 @@
 from .errors import InvalidTokenError
 from .errors import MismatchingStateError
-from .errors import MissingCodeError
 from .errors import MissingRequestTokenError
 from .errors import MissingTokenError
 from .errors import OAuthError
@@ -23,7 +22,6 @@ __all__ = [
     "OAuthError",
     "MissingRequestTokenError",
     "MissingTokenError",
-    "MissingCodeError",
     "TokenExpiredError",
     "InvalidTokenError",
     "UnsupportedTokenTypeError",

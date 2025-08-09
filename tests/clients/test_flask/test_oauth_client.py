@@ -8,7 +8,7 @@ from flask import session
 
 from authlib.common.urls import url_decode
 from authlib.common.urls import urlparse
-from authlib.integrations.base_client.errors import MissingCodeError
+from authlib.oauth2.rfc6749.errors import MissingCodeException
 from authlib.integrations.flask_client import FlaskOAuth2App
 from authlib.integrations.flask_client import OAuth
 from authlib.integrations.flask_client import OAuthError
@@ -550,7 +550,6 @@ class FlaskOAuthTest(TestCase):
         # Test missing code parameter
         with app.test_request_context(path=f"/?state={state}"):
             session[f"_state_dev_{state}"] = session_data
-            with pytest.raises(MissingCodeError) as exc_info:
+            with pytest.raises(MissingCodeException) as exc_info:
                 client.authorize_access_token()
             assert exc_info.value.error == "missing_code"
-            assert "authorization code is missing" in exc_info.value.description
