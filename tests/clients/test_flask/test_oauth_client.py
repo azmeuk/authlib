@@ -8,11 +8,11 @@ from flask import session
 
 from authlib.common.urls import url_decode
 from authlib.common.urls import urlparse
-from authlib.oauth2.rfc6749.errors import MissingCodeException
 from authlib.integrations.flask_client import FlaskOAuth2App
 from authlib.integrations.flask_client import OAuth
 from authlib.integrations.flask_client import OAuthError
 from authlib.jose.rfc7517 import JsonWebKey
+from authlib.oauth2.rfc6749.errors import MissingCodeException
 from authlib.oidc.core.grants.util import generate_id_token
 
 from ..util import get_bearer_token
