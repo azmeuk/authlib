@@ -9,7 +9,7 @@ Here you can see the full list of changes between each Authlib release.
 Version 1.6.2
 -------------
 
-**Unreleased**
+**Released on Aug 23, 2025**
 
 - Temporarily restore ``OAuth2Request`` ``body`` parameter. :issue:`781` :pr:`791`
 - Allow ``127.0.0.1`` in insecure transport mode. :pr:`788`
