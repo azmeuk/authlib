@@ -149,8 +149,8 @@ class OAuthClientRegistrationTest(TestCase):
         body = {"response_types": ["id_token code"], "client_name": "Authlib"}
         rv = self.client.post("/create_client", json=body, headers=headers)
         resp = json.loads(rv.data)
-        self.assertIn("client_id", resp)
-        self.assertEqual(resp["client_name"], "Authlib")
+        assert "client_id" in resp
+        assert resp["client_name"] == "Authlib"
 
         # https://www.rfc-editor.org/rfc/rfc7591.html#section-2
         # If omitted, the default is that the client will use only the "code"
@@ -348,7 +348,7 @@ class OIDCClientRegistrationTest(TestCase):
         body = {"id_token_signed_response_alg": "RS512", "client_name": "Authlib"}
         rv = self.client.post("/create_client", json=body, headers=self.headers)
         resp = json.loads(rv.data)
-        assert resp["error"] in "invalid_client_metadata"
+        assert resp["error"] == "invalid_client_metadata"
 
     def test_id_token_signing_alg_values_none(self):
         # The value none MUST NOT be used as the ID Token alg value unless the Client uses
@@ -365,9 +365,9 @@ class OIDCClientRegistrationTest(TestCase):
         }
         rv = self.client.post("/create_client", json=body, headers=self.headers)
         resp = json.loads(rv.data)
-        self.assertIn("client_id", resp)
-        self.assertEqual(resp["client_name"], "Authlib")
-        self.assertEqual(resp["id_token_signed_response_alg"], "none")
+        assert "client_id" in resp
+        assert resp["client_name"] == "Authlib"
+        assert resp["id_token_signed_response_alg"] == "none"
 
         # Error case
         body = {
@@ -377,7 +377,7 @@ class OIDCClientRegistrationTest(TestCase):
         }
         rv = self.client.post("/create_client", json=body, headers=self.headers)
         resp = json.loads(rv.data)
-        self.assertIn(resp["error"], "invalid_client_metadata")
+        assert resp["error"] == "invalid_client_metadata"
 
     def test_id_token_encryption_alg_values_supported(self):
         metadata = {"id_token_encryption_alg_values_supported": ["RS256", "ES256"]}
