@@ -100,11 +100,15 @@ def generate_id_token(
         payload["amr"] = amr
 
     if code:
-        payload["c_hash"] = to_native(create_half_hash(code, alg))
+        c_hash = create_half_hash(code, alg)
+        if c_hash is not None:
+            payload["c_hash"] = to_native(c_hash)
 
     access_token = token.get("access_token")
     if access_token:
-        payload["at_hash"] = to_native(create_half_hash(access_token, alg))
+        at_hash = create_half_hash(access_token, alg)
+        if at_hash is not None:
+            payload["at_hash"] = to_native(at_hash)
 
     payload.update(user_info)
     return to_native(jwt.encode(header, payload, key))
