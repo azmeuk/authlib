@@ -50,6 +50,7 @@ dev = [
     "pre-commit-uv>=4.1.4",
     "pytest",
     "pytest-asyncio",
+    "pytest-env",
     "tox-uv >= 1.16.0",
 ]
 
@@ -120,6 +121,10 @@ docstring-code-format = true
 asyncio_default_fixture_loop_scope = "function"
 asyncio_mode = "auto"
 norecursedirs = ["authlib", "build", "dist", "docs", "htmlcov"]
+pythonpath = ["."]
+env = [
+    "DJANGO_SETTINGS_MODULE = tests.django_settings",
+]
 
 [tool.coverage.run]
 branch = true
