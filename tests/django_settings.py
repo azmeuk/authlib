@@ -18,7 +18,12 @@ CACHES = {
     }
 }
 
-INSTALLED_APPS = []
+INSTALLED_APPS = [
+    "django.contrib.contenttypes",
+    "django.contrib.auth",
+    "tests.django.test_oauth1",
+    "tests.django.test_oauth2",
+]
 
 AUTHLIB_OAUTH_CLIENTS = {
     "dev_overwrite": {
