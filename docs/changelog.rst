@@ -11,7 +11,10 @@ Version 1.6.2
 
 **Unreleased**
 
-- Fix ``id_token`` generation with `EdDSA` algs.
+- Temporarily restore ``OAuth2Request`` ``body`` parameter. :issue:`781` :pr:`791`
+- Allow ``127.0.0.1`` in insecure transport mode. :pr:`788`
+- Raise ``MissingCodeException`` when the ``code`` parameter is missing. :issue:`793` :pr:`794`
+- Fix ``id_token`` generation with `EdDSA` algs. :issue:`799` :pr:`800`
 
 Version 1.6.1
 -------------
