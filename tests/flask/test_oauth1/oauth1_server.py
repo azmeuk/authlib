@@ -1,7 +1,3 @@
-import os
-import unittest
-
-from flask import Flask
 from flask import jsonify
 from flask import request
 from flask_sqlalchemy import SQLAlchemy
@@ -274,42 +270,3 @@ def create_resource_server(app, use_cache=False, lazy=False):
     def user_profile():
         user = current_credential.user
         return jsonify(id=user.id, username=user.username)
-
-
-def create_flask_app():
-    app = Flask(__name__)
-    app.debug = True
-    app.testing = True
-    app.secret_key = "testing"
-    app.config.update(
-        {
-            "OAUTH1_SUPPORTED_SIGNATURE_METHODS": [
-                "PLAINTEXT",
-                "HMAC-SHA1",
-                "RSA-SHA1",
-            ],
-            "SQLALCHEMY_TRACK_MODIFICATIONS": False,
-            "SQLALCHEMY_DATABASE_URI": "sqlite://",
-        }
-    )
-    return app
-
-
-class TestCase(unittest.TestCase):
-    def setUp(self):
-        os.environ["AUTHLIB_INSECURE_TRANSPORT"] = "true"
-        app = create_flask_app()
-
-        self._ctx = app.app_context()
-        self._ctx.push()
-
-        db.init_app(app)
-        db.create_all()
-
-        self.app = app
-        self.client = app.test_client()
-
-    def tearDown(self):
-        db.drop_all()
-        self._ctx.pop()
-        os.environ.pop("AUTHLIB_INSECURE_TRANSPORT")
