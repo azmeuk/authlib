@@ -7,6 +7,7 @@ from .models import User
 from .models import db
 from .oauth2_server import TestCase
 from .oauth2_server import create_authorization_server
+from .oauth2_server import create_basic_header
 
 
 class ClientCredentialsTest(TestCase):
@@ -44,7 +45,7 @@ class ClientCredentialsTest(TestCase):
         resp = json.loads(rv.data)
         assert resp["error"] == "invalid_client"
 
-        headers = self.create_basic_header("credential-client", "invalid-secret")
+        headers = create_basic_header("credential-client", "invalid-secret")
         rv = self.client.post(
             "/oauth/token",
             data={
@@ -57,7 +58,7 @@ class ClientCredentialsTest(TestCase):
 
     def test_invalid_grant_type(self):
         self.prepare_data(grant_type="invalid")
-        headers = self.create_basic_header("credential-client", "credential-secret")
+        headers = create_basic_header("credential-client", "credential-secret")
         rv = self.client.post(
             "/oauth/token",
             data={
@@ -71,7 +72,7 @@ class ClientCredentialsTest(TestCase):
     def test_invalid_scope(self):
         self.prepare_data()
         self.server.scopes_supported = ["profile"]
-        headers = self.create_basic_header("credential-client", "credential-secret")
+        headers = create_basic_header("credential-client", "credential-secret")
         rv = self.client.post(
             "/oauth/token",
             data={
@@ -85,7 +86,7 @@ class ClientCredentialsTest(TestCase):
 
     def test_authorize_token(self):
         self.prepare_data()
-        headers = self.create_basic_header("credential-client", "credential-secret")
+        headers = create_basic_header("credential-client", "credential-secret")
         rv = self.client.post(
             "/oauth/token",
             data={
@@ -101,7 +102,7 @@ class ClientCredentialsTest(TestCase):
         self.app.config.update({"OAUTH2_ACCESS_TOKEN_GENERATOR": m})
 
         self.prepare_data()
-        headers = self.create_basic_header("credential-client", "credential-secret")
+        headers = create_basic_header("credential-client", "credential-secret")
         rv = self.client.post(
             "/oauth/token",
             data={

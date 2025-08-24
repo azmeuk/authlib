@@ -22,6 +22,7 @@ from .models import exists_nonce
 from .models import save_authorization_code
 from .oauth2_server import TestCase
 from .oauth2_server import create_authorization_server
+from .oauth2_server import create_basic_header
 
 
 class AuthorizationCodeGrant(CodeGrantMixin, _AuthorizationCodeGrant):
@@ -103,7 +104,7 @@ class OpenIDCodeTest(BaseTestCase):
         assert params["state"] == "bar"
 
         code = params["code"]
-        headers = self.create_basic_header("code-client", "code-secret")
+        headers = create_basic_header("code-client", "code-secret")
         rv = self.client.post(
             "/oauth/token",
             data={
@@ -147,7 +148,7 @@ class OpenIDCodeTest(BaseTestCase):
         assert params["state"] == "bar"
 
         code = params["code"]
-        headers = self.create_basic_header("code-client", "code-secret")
+        headers = create_basic_header("code-client", "code-secret")
         rv = self.client.post(
             "/oauth/token",
             data={
@@ -349,7 +350,7 @@ class RSAOpenIDCodeTest(BaseTestCase):
         assert params["state"] == "bar"
 
         code = params["code"]
-        headers = self.create_basic_header("code-client", "code-secret")
+        headers = create_basic_header("code-client", "code-secret")
         rv = self.client.post(
             "/oauth/token",
             data={

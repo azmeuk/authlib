@@ -18,6 +18,7 @@ from .models import exists_nonce
 from .models import save_authorization_code
 from .oauth2_server import TestCase
 from .oauth2_server import create_authorization_server
+from .oauth2_server import create_basic_header
 
 JWT_CONFIG = {"iss": "Authlib", "key": "secret", "alg": "HS256", "exp": 3600}
 
@@ -205,7 +206,7 @@ class OpenIDCodeTest(TestCase):
         assert params["state"] == "bar"
 
         code = params["code"]
-        headers = self.create_basic_header("hybrid-client", "hybrid-secret")
+        headers = create_basic_header("hybrid-client", "hybrid-secret")
         rv = self.client.post(
             "/oauth/token",
             data={
@@ -245,7 +246,7 @@ class OpenIDCodeTest(TestCase):
         self.validate_claims(params["id_token"], params)
 
         code = params["code"]
-        headers = self.create_basic_header("hybrid-client", "hybrid-secret")
+        headers = create_basic_header("hybrid-client", "hybrid-secret")
         rv = self.client.post(
             "/oauth/token",
             data={
@@ -282,7 +283,7 @@ class OpenIDCodeTest(TestCase):
         self.validate_claims(params["id_token"], params)
 
         code = params["code"]
-        headers = self.create_basic_header("hybrid-client", "hybrid-secret")
+        headers = create_basic_header("hybrid-client", "hybrid-secret")
         rv = self.client.post(
             "/oauth/token",
             data={

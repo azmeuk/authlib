@@ -95,7 +95,8 @@ class TestCase(unittest.TestCase):
         self._ctx.pop()
         os.environ.pop("AUTHLIB_INSECURE_TRANSPORT")
 
-    def create_basic_header(self, username, password):
-        text = f"{username}:{password}"
-        auth = to_unicode(base64.b64encode(to_bytes(text)))
-        return {"Authorization": "Basic " + auth}
+
+def create_basic_header(username, password):
+    text = f"{username}:{password}"
+    auth = to_unicode(base64.b64encode(to_bytes(text)))
+    return {"Authorization": "Basic " + auth}

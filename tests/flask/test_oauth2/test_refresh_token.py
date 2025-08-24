@@ -10,6 +10,7 @@ from .models import User
 from .models import db
 from .oauth2_server import TestCase
 from .oauth2_server import create_authorization_server
+from .oauth2_server import create_basic_header
 
 
 class RefreshTokenGrant(_RefreshTokenGrant):
@@ -77,7 +78,7 @@ class RefreshTokenTest(TestCase):
         resp = json.loads(rv.data)
         assert resp["error"] == "invalid_client"
 
-        headers = self.create_basic_header("invalid-client", "refresh-secret")
+        headers = create_basic_header("invalid-client", "refresh-secret")
         rv = self.client.post(
             "/oauth/token",
             data={
@@ -89,7 +90,7 @@ class RefreshTokenTest(TestCase):
         resp = json.loads(rv.data)
         assert resp["error"] == "invalid_client"
 
-        headers = self.create_basic_header("refresh-client", "invalid-secret")
+        headers = create_basic_header("refresh-client", "invalid-secret")
         rv = self.client.post(
             "/oauth/token",
             data={
@@ -103,7 +104,7 @@ class RefreshTokenTest(TestCase):
 
     def test_invalid_refresh_token(self):
         self.prepare_data()
-        headers = self.create_basic_header("refresh-client", "refresh-secret")
+        headers = create_basic_header("refresh-client", "refresh-secret")
         rv = self.client.post(
             "/oauth/token",
             data={
@@ -129,7 +130,7 @@ class RefreshTokenTest(TestCase):
     def test_invalid_scope(self):
         self.prepare_data()
         self.create_token()
-        headers = self.create_basic_header("refresh-client", "refresh-secret")
+        headers = create_basic_header("refresh-client", "refresh-secret")
         rv = self.client.post(
             "/oauth/token",
             data={
@@ -145,7 +146,7 @@ class RefreshTokenTest(TestCase):
     def test_invalid_scope_none(self):
         self.prepare_data()
         self.create_token(scope=None)
-        headers = self.create_basic_header("refresh-client", "refresh-secret")
+        headers = create_basic_header("refresh-client", "refresh-secret")
         rv = self.client.post(
             "/oauth/token",
             data={
@@ -161,7 +162,7 @@ class RefreshTokenTest(TestCase):
     def test_invalid_user(self):
         self.prepare_data()
         self.create_token(user_id=5)
-        headers = self.create_basic_header("refresh-client", "refresh-secret")
+        headers = create_basic_header("refresh-client", "refresh-secret")
         rv = self.client.post(
             "/oauth/token",
             data={
@@ -177,7 +178,7 @@ class RefreshTokenTest(TestCase):
     def test_invalid_grant_type(self):
         self.prepare_data(grant_type="invalid")
         self.create_token()
-        headers = self.create_basic_header("refresh-client", "refresh-secret")
+        headers = create_basic_header("refresh-client", "refresh-secret")
         rv = self.client.post(
             "/oauth/token",
             data={
@@ -193,7 +194,7 @@ class RefreshTokenTest(TestCase):
     def test_authorize_token_no_scope(self):
         self.prepare_data()
         self.create_token()
-        headers = self.create_basic_header("refresh-client", "refresh-secret")
+        headers = create_basic_header("refresh-client", "refresh-secret")
         rv = self.client.post(
             "/oauth/token",
             data={
@@ -208,7 +209,7 @@ class RefreshTokenTest(TestCase):
     def test_authorize_token_scope(self):
         self.prepare_data()
         self.create_token()
-        headers = self.create_basic_header("refresh-client", "refresh-secret")
+        headers = create_basic_header("refresh-client", "refresh-secret")
         rv = self.client.post(
             "/oauth/token",
             data={
@@ -224,7 +225,7 @@ class RefreshTokenTest(TestCase):
     def test_revoke_old_credential(self):
         self.prepare_data()
         self.create_token()
-        headers = self.create_basic_header("refresh-client", "refresh-secret")
+        headers = create_basic_header("refresh-client", "refresh-secret")
         rv = self.client.post(
             "/oauth/token",
             data={
@@ -256,7 +257,7 @@ class RefreshTokenTest(TestCase):
 
         self.prepare_data()
         self.create_token()
-        headers = self.create_basic_header("refresh-client", "refresh-secret")
+        headers = create_basic_header("refresh-client", "refresh-secret")
         rv = self.client.post(
             "/oauth/token",
             data={

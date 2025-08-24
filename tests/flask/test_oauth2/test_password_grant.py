@@ -11,6 +11,7 @@ from .models import User
 from .models import db
 from .oauth2_server import TestCase
 from .oauth2_server import create_authorization_server
+from .oauth2_server import create_basic_header
 
 
 class IDToken(OpenIDToken):
@@ -69,7 +70,7 @@ class PasswordTest(TestCase):
         resp = json.loads(rv.data)
         assert resp["error"] == "invalid_client"
 
-        headers = self.create_basic_header("password-client", "invalid-secret")
+        headers = create_basic_header("password-client", "invalid-secret")
         rv = self.client.post(
             "/oauth/token",
             data={
@@ -85,7 +86,7 @@ class PasswordTest(TestCase):
     def test_invalid_scope(self):
         self.prepare_data()
         self.server.scopes_supported = ["profile"]
-        headers = self.create_basic_header("password-client", "password-secret")
+        headers = create_basic_header("password-client", "password-secret")
         rv = self.client.post(
             "/oauth/token",
             data={
@@ -101,7 +102,7 @@ class PasswordTest(TestCase):
 
     def test_invalid_request(self):
         self.prepare_data()
-        headers = self.create_basic_header("password-client", "password-secret")
+        headers = create_basic_header("password-client", "password-secret")
 
         rv = self.client.get(
             add_params_to_uri(
@@ -150,7 +151,7 @@ class PasswordTest(TestCase):
 
     def test_invalid_grant_type(self):
         self.prepare_data(grant_type="invalid")
-        headers = self.create_basic_header("password-client", "password-secret")
+        headers = create_basic_header("password-client", "password-secret")
         rv = self.client.post(
             "/oauth/token",
             data={
@@ -165,7 +166,7 @@ class PasswordTest(TestCase):
 
     def test_authorize_token(self):
         self.prepare_data()
-        headers = self.create_basic_header("password-client", "password-secret")
+        headers = create_basic_header("password-client", "password-secret")
         rv = self.client.post(
             "/oauth/token",
             data={
@@ -182,7 +183,7 @@ class PasswordTest(TestCase):
         m = "tests.flask.test_oauth2.oauth2_server:token_generator"
         self.app.config.update({"OAUTH2_ACCESS_TOKEN_GENERATOR": m})
         self.prepare_data()
-        headers = self.create_basic_header("password-client", "password-secret")
+        headers = create_basic_header("password-client", "password-secret")
         rv = self.client.post(
             "/oauth/token",
             data={
@@ -199,7 +200,7 @@ class PasswordTest(TestCase):
     def test_custom_expires_in(self):
         self.app.config.update({"OAUTH2_TOKEN_EXPIRES_IN": {"password": 1800}})
         self.prepare_data()
-        headers = self.create_basic_header("password-client", "password-secret")
+        headers = create_basic_header("password-client", "password-secret")
         rv = self.client.post(
             "/oauth/token",
             data={
@@ -215,7 +216,7 @@ class PasswordTest(TestCase):
 
     def test_id_token_extension(self):
         self.prepare_data(extensions=[IDToken()])
-        headers = self.create_basic_header("password-client", "password-secret")
+        headers = create_basic_header("password-client", "password-secret")
         rv = self.client.post(
             "/oauth/token",
             data={

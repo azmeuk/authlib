@@ -29,6 +29,7 @@ from .models import db
 from .models import save_authorization_code
 from .oauth2_server import TestCase
 from .oauth2_server import create_authorization_server
+from .oauth2_server import create_basic_header
 
 
 def create_token_validator(issuer, resource_server, jwks):
@@ -623,7 +624,7 @@ class JWTAccessTokenIntrospectionTest(TestCase):
         self.access_token = create_access_token(self.claims, self.jwks)
 
     def test_introspection(self):
-        headers = self.create_basic_header(
+        headers = create_basic_header(
             self.oauth_client.client_id, self.oauth_client.client_secret
         )
         rv = self.client.post(
@@ -644,7 +645,7 @@ class JWTAccessTokenIntrospectionTest(TestCase):
             User, user_id
         ).username
 
-        headers = self.create_basic_header(
+        headers = create_basic_header(
             self.oauth_client.client_id, self.oauth_client.client_secret
         )
         rv = self.client.post(
@@ -661,7 +662,7 @@ class JWTAccessTokenIntrospectionTest(TestCase):
                 return None
 
         self.authorization_server.register_endpoint(MyIntrospectionEndpoint)
-        headers = self.create_basic_header(
+        headers = create_basic_header(
             self.oauth_client.client_id, self.oauth_client.client_secret
         )
         rv = self.client.post(
@@ -682,7 +683,7 @@ class JWTAccessTokenIntrospectionTest(TestCase):
                 return None
 
         self.authorization_server.register_endpoint(MyIntrospectionEndpoint)
-        headers = self.create_basic_header(
+        headers = create_basic_header(
             self.oauth_client.client_id, self.oauth_client.client_secret
         )
         rv = self.client.post(
@@ -699,7 +700,7 @@ class JWTAccessTokenIntrospectionTest(TestCase):
     def test_permission_denied(self):
         self.introspection_endpoint.check_permission = lambda *args: False
 
-        headers = self.create_basic_header(
+        headers = create_basic_header(
             self.oauth_client.client_id, self.oauth_client.client_secret
         )
         rv = self.client.post(
@@ -712,7 +713,7 @@ class JWTAccessTokenIntrospectionTest(TestCase):
     def test_token_expired(self):
         self.claims["exp"] = time.time() - 3600
         access_token = create_access_token(self.claims, self.jwks)
-        headers = self.create_basic_header(
+        headers = create_basic_header(
             self.oauth_client.client_id, self.oauth_client.client_secret
         )
         rv = self.client.post(
@@ -731,7 +732,7 @@ class JWTAccessTokenIntrospectionTest(TestCase):
 
         self.claims["iss"] = "different-issuer"
         access_token = create_access_token(self.claims, self.jwks)
-        headers = self.create_basic_header(
+        headers = create_basic_header(
             self.oauth_client.client_id, self.oauth_client.client_secret
         )
         rv = self.client.post(
@@ -744,7 +745,7 @@ class JWTAccessTokenIntrospectionTest(TestCase):
     def test_introspection_invalid_claim(self):
         self.claims["exp"] = "invalid"
         access_token = create_access_token(self.claims, self.jwks)
-        headers = self.create_basic_header(
+        headers = create_basic_header(
             self.oauth_client.client_id, self.oauth_client.client_secret
         )
         rv = self.client.post(
@@ -777,7 +778,7 @@ class JWTAccessTokenRevocationTest(TestCase):
         self.access_token = create_access_token(self.claims, self.jwks)
 
     def test_revocation(self):
-        headers = self.create_basic_header(
+        headers = create_basic_header(
             self.oauth_client.client_id, self.oauth_client.client_secret
         )
         rv = self.client.post(
@@ -793,7 +794,7 @@ class JWTAccessTokenRevocationTest(TestCase):
                 return None
 
         self.authorization_server.register_endpoint(MyRevocationEndpoint)
-        headers = self.create_basic_header(
+        headers = create_basic_header(
             self.oauth_client.client_id, self.oauth_client.client_secret
         )
         rv = self.client.post(
@@ -814,7 +815,7 @@ class JWTAccessTokenRevocationTest(TestCase):
                 return None
 
         self.authorization_server.register_endpoint(MyRevocationEndpoint)
-        headers = self.create_basic_header(
+        headers = create_basic_header(
             self.oauth_client.client_id, self.oauth_client.client_secret
         )
         rv = self.client.post(
@@ -832,7 +833,7 @@ class JWTAccessTokenRevocationTest(TestCase):
         self.claims["iss"] = "different-issuer"
         access_token = create_access_token(self.claims, self.jwks)
 
-        headers = self.create_basic_header(
+        headers = create_basic_header(
             self.oauth_client.client_id, self.oauth_client.client_secret
         )
         rv = self.client.post(
