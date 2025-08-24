@@ -9,6 +9,7 @@ from .models import User
 from .models import db
 from .oauth2_server import TestCase
 from .oauth2_server import create_authorization_server
+from .oauth2_server import create_basic_header
 
 query_token = create_query_token_func(db.session, Token)
 
@@ -87,19 +88,19 @@ class IntrospectTokenTest(TestCase):
         resp = json.loads(rv.data)
         assert resp["error"] == "invalid_client"
 
-        headers = self.create_basic_header("invalid-client", "introspect-secret")
+        headers = create_basic_header("invalid-client", "introspect-secret")
         rv = self.client.post("/oauth/introspect", headers=headers)
         resp = json.loads(rv.data)
         assert resp["error"] == "invalid_client"
 
-        headers = self.create_basic_header("introspect-client", "invalid-secret")
+        headers = create_basic_header("introspect-client", "invalid-secret")
         rv = self.client.post("/oauth/introspect", headers=headers)
         resp = json.loads(rv.data)
         assert resp["error"] == "invalid_client"
 
     def test_invalid_token(self):
         self.prepare_data()
-        headers = self.create_basic_header("introspect-client", "introspect-secret")
+        headers = create_basic_header("introspect-client", "introspect-secret")
         rv = self.client.post("/oauth/introspect", headers=headers)
         resp = json.loads(rv.data)
         assert resp["error"] == "invalid_request"
@@ -149,7 +150,7 @@ class IntrospectTokenTest(TestCase):
     def test_introspect_token_with_hint(self):
         self.prepare_data()
         self.create_token()
-        headers = self.create_basic_header("introspect-client", "introspect-secret")
+        headers = create_basic_header("introspect-client", "introspect-secret")
         rv = self.client.post(
             "/oauth/introspect",
             data={
@@ -165,7 +166,7 @@ class IntrospectTokenTest(TestCase):
     def test_introspect_token_without_hint(self):
         self.prepare_data()
         self.create_token()
-        headers = self.create_basic_header("introspect-client", "introspect-secret")
+        headers = create_basic_header("introspect-client", "introspect-secret")
         rv = self.client.post(
             "/oauth/introspect",
             data={

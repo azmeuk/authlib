@@ -14,6 +14,7 @@ from .models import db
 from .models import save_authorization_code
 from .oauth2_server import TestCase
 from .oauth2_server import create_authorization_server
+from .oauth2_server import create_basic_header
 
 
 class AuthorizationCodeGrant(CodeGrantMixin, _AuthorizationCodeGrant):
@@ -109,7 +110,7 @@ class AuthorizationCodeTest(TestCase):
         resp = json.loads(rv.data)
         assert resp["error"] == "invalid_client"
 
-        headers = self.create_basic_header("code-client", "invalid-secret")
+        headers = create_basic_header("code-client", "invalid-secret")
         rv = self.client.post(
             "/oauth/token",
             data={
@@ -125,7 +126,7 @@ class AuthorizationCodeTest(TestCase):
     def test_invalid_code(self):
         self.prepare_data()
 
-        headers = self.create_basic_header("code-client", "code-secret")
+        headers = create_basic_header("code-client", "code-secret")
         rv = self.client.post(
             "/oauth/token",
             data={
@@ -174,7 +175,7 @@ class AuthorizationCodeTest(TestCase):
 
         params = dict(url_decode(urlparse.urlparse(rv.location).query))
         code = params["code"]
-        headers = self.create_basic_header("code-client", "code-secret")
+        headers = create_basic_header("code-client", "code-secret")
         rv = self.client.post(
             "/oauth/token",
             data={
@@ -234,7 +235,7 @@ class AuthorizationCodeTest(TestCase):
         assert params["state"] == "bar"
 
         code = params["code"]
-        headers = self.create_basic_header("code-client", "code-secret")
+        headers = create_basic_header("code-client", "code-secret")
         rv = self.client.post(
             "/oauth/token",
             data={

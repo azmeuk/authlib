@@ -8,6 +8,7 @@ from .models import User
 from .models import db
 from .oauth2_server import TestCase
 from .oauth2_server import create_authorization_server
+from .oauth2_server import create_basic_header
 
 RevocationEndpoint = create_revocation_endpoint(db.session, Token)
 
@@ -63,19 +64,19 @@ class RevokeTokenTest(TestCase):
         resp = json.loads(rv.data)
         assert resp["error"] == "invalid_client"
 
-        headers = self.create_basic_header("invalid-client", "revoke-secret")
+        headers = create_basic_header("invalid-client", "revoke-secret")
         rv = self.client.post("/oauth/revoke", headers=headers)
         resp = json.loads(rv.data)
         assert resp["error"] == "invalid_client"
 
-        headers = self.create_basic_header("revoke-client", "invalid-secret")
+        headers = create_basic_header("revoke-client", "invalid-secret")
         rv = self.client.post("/oauth/revoke", headers=headers)
         resp = json.loads(rv.data)
         assert resp["error"] == "invalid_client"
 
     def test_invalid_token(self):
         self.prepare_data()
-        headers = self.create_basic_header("revoke-client", "revoke-secret")
+        headers = create_basic_header("revoke-client", "revoke-secret")
         rv = self.client.post("/oauth/revoke", headers=headers)
         resp = json.loads(rv.data)
         assert resp["error"] == "invalid_request"
@@ -113,7 +114,7 @@ class RevokeTokenTest(TestCase):
     def test_revoke_token_with_hint(self):
         self.prepare_data()
         self.create_token()
-        headers = self.create_basic_header("revoke-client", "revoke-secret")
+        headers = create_basic_header("revoke-client", "revoke-secret")
         rv = self.client.post(
             "/oauth/revoke",
             data={
@@ -127,7 +128,7 @@ class RevokeTokenTest(TestCase):
     def test_revoke_token_without_hint(self):
         self.prepare_data()
         self.create_token()
-        headers = self.create_basic_header("revoke-client", "revoke-secret")
+        headers = create_basic_header("revoke-client", "revoke-secret")
         rv = self.client.post(
             "/oauth/revoke",
             data={
@@ -155,7 +156,7 @@ class RevokeTokenTest(TestCase):
         db.session.add(client2)
         db.session.commit()
 
-        headers = self.create_basic_header("revoke-client-2", "revoke-secret-2")
+        headers = create_basic_header("revoke-client-2", "revoke-secret-2")
         rv = self.client.post(
             "/oauth/revoke",
             data={

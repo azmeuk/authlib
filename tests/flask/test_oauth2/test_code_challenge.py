@@ -15,6 +15,7 @@ from .models import db
 from .models import save_authorization_code
 from .oauth2_server import TestCase
 from .oauth2_server import create_authorization_server
+from .oauth2_server import create_basic_header
 
 
 class AuthorizationCodeGrant(CodeGrantMixin, grants.AuthorizationCodeGrant):
@@ -102,7 +103,7 @@ class CodeChallengeTest(TestCase):
         params = dict(url_decode(urlparse.urlparse(rv.location).query))
 
         code = params["code"]
-        headers = self.create_basic_header("code-client", "code-secret")
+        headers = create_basic_header("code-client", "code-secret")
         rv = self.client.post(
             "/oauth/token",
             data={
@@ -147,7 +148,7 @@ class CodeChallengeTest(TestCase):
 
         params = dict(url_decode(urlparse.urlparse(rv.location).query))
         code = params["code"]
-        headers = self.create_basic_header("code-client", "code-secret")
+        headers = create_basic_header("code-client", "code-secret")
         rv = self.client.post(
             "/oauth/token",
             data={
