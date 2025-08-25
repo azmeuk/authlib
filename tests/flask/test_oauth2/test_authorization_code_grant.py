@@ -1,3 +1,4 @@
+import pytest
 from flask import json
 
 from authlib.common.urls import url_decode
@@ -7,14 +8,28 @@ from authlib.oauth2.rfc6749.grants import (
 )
 
 from .models import AuthorizationCode
-from .models import Client
 from .models import CodeGrantMixin
-from .models import User
 from .models import db
 from .models import save_authorization_code
-from .oauth2_server import TestCase
-from .oauth2_server import create_authorization_server
 from .oauth2_server import create_basic_header
+
+authorize_url = "/oauth/authorize?response_type=code&client_id=client-id"
+
+
+@pytest.fixture(autouse=True)
+def client(client, db):
+    client.set_client_metadata(
+        {
+            "redirect_uris": ["https://a.b"],
+            "scope": "profile address",
+            "token_endpoint_auth_method": "client_secret_basic",
+            "response_types": ["code"],
+            "grant_types": ["authorization_code"],
+        }
+    )
+    db.session.add(client)
+    db.session.commit()
+    return client
 
 
 class AuthorizationCodeGrant(CodeGrantMixin, _AuthorizationCodeGrant):
@@ -24,286 +39,316 @@ class AuthorizationCodeGrant(CodeGrantMixin, _AuthorizationCodeGrant):
         return save_authorization_code(code, request)
 
 
-class AuthorizationCodeTest(TestCase):
-    LAZY_INIT = False
+@pytest.fixture(autouse=True)
+def server(server):
+    server.register_grant(AuthorizationCodeGrant)
+    return server
 
-    def register_grant(self, server):
-        server.register_grant(AuthorizationCodeGrant)
 
-    def prepare_data(
-        self,
-        is_confidential=True,
-        response_type="code",
-        grant_type="authorization_code",
-        token_endpoint_auth_method="client_secret_basic",
-    ):
-        server = create_authorization_server(self.app, self.LAZY_INIT)
-        self.register_grant(server)
-        self.server = server
+def test_get_authorize(test_client):
+    rv = test_client.get(authorize_url)
+    assert rv.data == b"ok"
 
-        user = User(username="foo")
-        db.session.add(user)
-        db.session.commit()
 
-        if is_confidential:
-            client_secret = "code-secret"
-        else:
-            client_secret = ""
-        client = Client(
-            user_id=user.id,
-            client_id="code-client",
-            client_secret=client_secret,
-        )
-        client.set_client_metadata(
-            {
-                "redirect_uris": ["https://a.b"],
-                "scope": "profile address",
-                "token_endpoint_auth_method": token_endpoint_auth_method,
-                "response_types": [response_type],
-                "grant_types": grant_type.splitlines(),
-            }
-        )
-        self.authorize_url = "/oauth/authorize?response_type=code&client_id=code-client"
-        db.session.add(client)
-        db.session.commit()
+def test_invalid_client_id(test_client):
+    url = "/oauth/authorize?response_type=code"
+    rv = test_client.get(url)
+    assert b"invalid_client" in rv.data
 
-    def test_get_authorize(self):
-        self.prepare_data()
-        rv = self.client.get(self.authorize_url)
-        assert rv.data == b"ok"
+    url = "/oauth/authorize?response_type=code&client_id=invalid"
+    rv = test_client.get(url)
+    assert b"invalid_client" in rv.data
 
-    def test_invalid_client_id(self):
-        self.prepare_data()
-        url = "/oauth/authorize?response_type=code"
-        rv = self.client.get(url)
-        assert b"invalid_client" in rv.data
 
-        url = "/oauth/authorize?response_type=code&client_id=invalid"
-        rv = self.client.get(url)
-        assert b"invalid_client" in rv.data
+def test_invalid_authorize(test_client, server):
+    rv = test_client.post(authorize_url)
+    assert "error=access_denied" in rv.location
 
-    def test_invalid_authorize(self):
-        self.prepare_data()
-        rv = self.client.post(self.authorize_url)
-        assert "error=access_denied" in rv.location
+    server.scopes_supported = ["profile"]
+    rv = test_client.post(authorize_url + "&scope=invalid&state=foo")
+    assert "error=invalid_scope" in rv.location
+    assert "state=foo" in rv.location
 
-        self.server.scopes_supported = ["profile"]
-        rv = self.client.post(self.authorize_url + "&scope=invalid&state=foo")
-        assert "error=invalid_scope" in rv.location
-        assert "state=foo" in rv.location
 
-    def test_unauthorized_client(self):
-        self.prepare_data(True, "token")
-        rv = self.client.get(self.authorize_url)
-        assert "unauthorized_client" in rv.location
+def test_unauthorized_client(test_client, client, db):
+    client.set_client_metadata(
+        {
+            "redirect_uris": ["https://a.b"],
+            "scope": "profile address",
+            "token_endpoint_auth_method": "client_secret_basic",
+            "response_types": ["token"],
+            "grant_types": ["authorization_code"],
+        }
+    )
+    db.session.add(client)
+    db.session.commit()
 
-    def test_invalid_client(self):
-        self.prepare_data()
-        rv = self.client.post(
-            "/oauth/token",
-            data={
-                "grant_type": "authorization_code",
-                "code": "invalid",
-                "client_id": "invalid-id",
-            },
-        )
-        resp = json.loads(rv.data)
-        assert resp["error"] == "invalid_client"
+    rv = test_client.get(authorize_url)
+    assert "unauthorized_client" in rv.location
 
-        headers = create_basic_header("code-client", "invalid-secret")
-        rv = self.client.post(
-            "/oauth/token",
-            data={
-                "grant_type": "authorization_code",
-                "code": "invalid",
-            },
-            headers=headers,
-        )
-        resp = json.loads(rv.data)
-        assert resp["error"] == "invalid_client"
-        assert resp["error_uri"] == "https://a.b/e#invalid_client"
 
-    def test_invalid_code(self):
-        self.prepare_data()
+def test_invalid_client(test_client):
+    rv = test_client.post(
+        "/oauth/token",
+        data={
+            "grant_type": "authorization_code",
+            "code": "invalid",
+            "client_id": "invalid-id",
+        },
+    )
+    resp = json.loads(rv.data)
+    assert resp["error"] == "invalid_client"
 
-        headers = create_basic_header("code-client", "code-secret")
-        rv = self.client.post(
-            "/oauth/token",
-            data={
-                "grant_type": "authorization_code",
-            },
-            headers=headers,
-        )
-        resp = json.loads(rv.data)
-        assert resp["error"] == "invalid_request"
+    headers = create_basic_header("code-client", "invalid-secret")
+    rv = test_client.post(
+        "/oauth/token",
+        data={
+            "grant_type": "authorization_code",
+            "code": "invalid",
+        },
+        headers=headers,
+    )
+    resp = json.loads(rv.data)
+    assert resp["error"] == "invalid_client"
+    assert resp["error_uri"] == "https://a.b/e#invalid_client"
 
-        rv = self.client.post(
-            "/oauth/token",
-            data={
-                "grant_type": "authorization_code",
-                "code": "invalid",
-            },
-            headers=headers,
-        )
-        resp = json.loads(rv.data)
-        assert resp["error"] == "invalid_grant"
 
-        code = AuthorizationCode(code="no-user", client_id="code-client", user_id=0)
-        db.session.add(code)
-        db.session.commit()
-        rv = self.client.post(
-            "/oauth/token",
-            data={
-                "grant_type": "authorization_code",
-                "code": "no-user",
-            },
-            headers=headers,
-        )
-        resp = json.loads(rv.data)
-        assert resp["error"] == "invalid_grant"
+def test_invalid_code(test_client):
+    headers = create_basic_header("client-id", "client-secret")
+    rv = test_client.post(
+        "/oauth/token",
+        data={
+            "grant_type": "authorization_code",
+        },
+        headers=headers,
+    )
+    resp = json.loads(rv.data)
+    assert resp["error"] == "invalid_request"
 
-    def test_invalid_redirect_uri(self):
-        self.prepare_data()
-        uri = self.authorize_url + "&redirect_uri=https%3A%2F%2Fa.c"
-        rv = self.client.post(uri, data={"user_id": "1"})
-        resp = json.loads(rv.data)
-        assert resp["error"] == "invalid_request"
+    rv = test_client.post(
+        "/oauth/token",
+        data={
+            "grant_type": "authorization_code",
+            "code": "invalid",
+        },
+        headers=headers,
+    )
+    resp = json.loads(rv.data)
+    assert resp["error"] == "invalid_grant"
 
-        uri = self.authorize_url + "&redirect_uri=https%3A%2F%2Fa.b"
-        rv = self.client.post(uri, data={"user_id": "1"})
-        assert "code=" in rv.location
+    code = AuthorizationCode(code="no-user", client_id="code-client", user_id=0)
+    db.session.add(code)
+    db.session.commit()
+    rv = test_client.post(
+        "/oauth/token",
+        data={
+            "grant_type": "authorization_code",
+            "code": "no-user",
+        },
+        headers=headers,
+    )
+    resp = json.loads(rv.data)
+    assert resp["error"] == "invalid_grant"
 
-        params = dict(url_decode(urlparse.urlparse(rv.location).query))
-        code = params["code"]
-        headers = create_basic_header("code-client", "code-secret")
-        rv = self.client.post(
-            "/oauth/token",
-            data={
-                "grant_type": "authorization_code",
-                "code": code,
-            },
-            headers=headers,
-        )
-        resp = json.loads(rv.data)
-        assert resp["error"] == "invalid_grant"
 
-    def test_invalid_grant_type(self):
-        self.prepare_data(
-            False, token_endpoint_auth_method="none", grant_type="invalid"
-        )
-        rv = self.client.post(
-            "/oauth/token",
-            data={
-                "grant_type": "authorization_code",
-                "client_id": "code-client",
-                "code": "a",
-            },
-        )
-        resp = json.loads(rv.data)
-        assert resp["error"] == "unauthorized_client"
+def test_invalid_redirect_uri(test_client):
+    uri = authorize_url + "&redirect_uri=https%3A%2F%2Fa.c"
+    rv = test_client.post(uri, data={"user_id": "1"})
+    resp = json.loads(rv.data)
+    assert resp["error"] == "invalid_request"
 
-    def test_authorize_token_no_refresh_token(self):
-        self.app.config.update({"OAUTH2_REFRESH_TOKEN_GENERATOR": True})
-        self.prepare_data(False, token_endpoint_auth_method="none")
+    uri = authorize_url + "&redirect_uri=https%3A%2F%2Fa.b"
+    rv = test_client.post(uri, data={"user_id": "1"})
+    assert "code=" in rv.location
 
-        rv = self.client.post(self.authorize_url, data={"user_id": "1"})
-        assert "code=" in rv.location
+    params = dict(url_decode(urlparse.urlparse(rv.location).query))
+    code = params["code"]
+    headers = create_basic_header("client-id", "client-secret")
+    rv = test_client.post(
+        "/oauth/token",
+        data={
+            "grant_type": "authorization_code",
+            "code": code,
+        },
+        headers=headers,
+    )
+    resp = json.loads(rv.data)
+    assert resp["error"] == "invalid_grant"
 
-        params = dict(url_decode(urlparse.urlparse(rv.location).query))
-        code = params["code"]
-        rv = self.client.post(
-            "/oauth/token",
-            data={
-                "grant_type": "authorization_code",
-                "code": code,
-                "client_id": "code-client",
-            },
-        )
-        resp = json.loads(rv.data)
-        assert "access_token" in resp
-        assert "refresh_token" not in resp
 
-    def test_authorize_token_has_refresh_token(self):
-        # generate refresh token
-        self.app.config.update({"OAUTH2_REFRESH_TOKEN_GENERATOR": True})
-        self.prepare_data(grant_type="authorization_code\nrefresh_token")
-        url = self.authorize_url + "&state=bar"
-        rv = self.client.post(url, data={"user_id": "1"})
-        assert "code=" in rv.location
+def test_invalid_grant_type(test_client, client, db):
+    client.client_secret = ""
+    client.set_client_metadata(
+        {
+            "redirect_uris": ["https://a.b"],
+            "scope": "profile address",
+            "token_endpoint_auth_method": "none",
+            "response_types": ["code"],
+            "grant_types": ["invalid"],
+        }
+    )
+    db.session.add(client)
+    db.session.commit()
 
-        params = dict(url_decode(urlparse.urlparse(rv.location).query))
-        assert params["state"] == "bar"
+    rv = test_client.post(
+        "/oauth/token",
+        data={
+            "grant_type": "authorization_code",
+            "client_id": "client-id",
+            "code": "a",
+        },
+    )
+    resp = json.loads(rv.data)
+    assert resp["error"] == "unauthorized_client"
 
-        code = params["code"]
-        headers = create_basic_header("code-client", "code-secret")
-        rv = self.client.post(
-            "/oauth/token",
-            data={
-                "grant_type": "authorization_code",
-                "code": code,
-            },
-            headers=headers,
-        )
-        resp = json.loads(rv.data)
-        assert "access_token" in resp
-        assert "refresh_token" in resp
 
-    def test_invalid_multiple_request_parameters(self):
-        self.prepare_data()
-        url = (
-            self.authorize_url
-            + "&scope=profile&state=bar&redirect_uri=https%3A%2F%2Fa.b&response_type=code"
-        )
-        rv = self.client.get(url)
-        resp = json.loads(rv.data)
-        assert resp["error"] == "invalid_request"
-        assert resp["error_description"] == "Multiple 'response_type' in request."
+def test_authorize_token_no_refresh_token(app, test_client, client, db, server):
+    app.config.update({"OAUTH2_REFRESH_TOKEN_GENERATOR": True})
+    server.load_config(app.config)
+    client.set_client_metadata(
+        {
+            "redirect_uris": ["https://a.b"],
+            "scope": "profile address",
+            "token_endpoint_auth_method": "none",
+            "response_types": ["code"],
+            "grant_types": ["authorization_code"],
+        }
+    )
+    db.session.add(client)
+    db.session.commit()
 
-    def test_client_secret_post(self):
-        self.app.config.update({"OAUTH2_REFRESH_TOKEN_GENERATOR": True})
-        self.prepare_data(
-            grant_type="authorization_code\nrefresh_token",
-            token_endpoint_auth_method="client_secret_post",
-        )
-        url = self.authorize_url + "&state=bar"
-        rv = self.client.post(url, data={"user_id": "1"})
-        assert "code=" in rv.location
+    rv = test_client.post(authorize_url, data={"user_id": "1"})
+    assert "code=" in rv.location
 
-        params = dict(url_decode(urlparse.urlparse(rv.location).query))
-        assert params["state"] == "bar"
+    params = dict(url_decode(urlparse.urlparse(rv.location).query))
+    code = params["code"]
+    rv = test_client.post(
+        "/oauth/token",
+        data={
+            "grant_type": "authorization_code",
+            "code": code,
+            "client_id": "client-id",
+        },
+    )
+    resp = json.loads(rv.data)
+    assert "access_token" in resp
+    assert "refresh_token" not in resp
 
-        code = params["code"]
-        rv = self.client.post(
-            "/oauth/token",
-            data={
-                "grant_type": "authorization_code",
-                "client_id": "code-client",
-                "client_secret": "code-secret",
-                "code": code,
-            },
-        )
-        resp = json.loads(rv.data)
-        assert "access_token" in resp
-        assert "refresh_token" in resp
 
-    def test_token_generator(self):
-        m = "tests.flask.test_oauth2.oauth2_server:token_generator"
-        self.app.config.update({"OAUTH2_ACCESS_TOKEN_GENERATOR": m})
-        self.prepare_data(False, token_endpoint_auth_method="none")
+def test_authorize_token_has_refresh_token(app, test_client, client, db, server):
+    app.config.update({"OAUTH2_REFRESH_TOKEN_GENERATOR": True})
+    server.load_config(app.config)
+    client.set_client_metadata(
+        {
+            "redirect_uris": ["https://a.b"],
+            "scope": "profile address",
+            "token_endpoint_auth_method": "client_secret_basic",
+            "response_types": ["code"],
+            "grant_types": ["authorization_code", "refresh_token"],
+        }
+    )
+    db.session.add(client)
+    db.session.commit()
 
-        rv = self.client.post(self.authorize_url, data={"user_id": "1"})
-        assert "code=" in rv.location
+    url = authorize_url + "&state=bar"
+    rv = test_client.post(url, data={"user_id": "1"})
+    assert "code=" in rv.location
 
-        params = dict(url_decode(urlparse.urlparse(rv.location).query))
-        code = params["code"]
-        rv = self.client.post(
-            "/oauth/token",
-            data={
-                "grant_type": "authorization_code",
-                "code": code,
-                "client_id": "code-client",
-            },
-        )
-        resp = json.loads(rv.data)
-        assert "access_token" in resp
-        assert "c-authorization_code.1." in resp["access_token"]
+    params = dict(url_decode(urlparse.urlparse(rv.location).query))
+    assert params["state"] == "bar"
+
+    code = params["code"]
+    headers = create_basic_header("client-id", "client-secret")
+    rv = test_client.post(
+        "/oauth/token",
+        data={
+            "grant_type": "authorization_code",
+            "code": code,
+        },
+        headers=headers,
+    )
+    resp = json.loads(rv.data)
+    assert "access_token" in resp
+    assert "refresh_token" in resp
+
+
+def test_invalid_multiple_request_parameters(test_client):
+    url = (
+        authorize_url
+        + "&scope=profile&state=bar&redirect_uri=https%3A%2F%2Fa.b&response_type=code"
+    )
+    rv = test_client.get(url)
+    resp = json.loads(rv.data)
+    assert resp["error"] == "invalid_request"
+    assert resp["error_description"] == "Multiple 'response_type' in request."
+
+
+def test_client_secret_post(app, test_client, client, db, server):
+    app.config.update({"OAUTH2_REFRESH_TOKEN_GENERATOR": True})
+    server.load_config(app.config)
+    client.set_client_metadata(
+        {
+            "redirect_uris": ["https://a.b"],
+            "scope": "profile address",
+            "token_endpoint_auth_method": "client_secret_post",
+            "response_types": ["code"],
+            "grant_types": ["authorization_code", "refresh_token"],
+        }
+    )
+    db.session.add(client)
+    db.session.commit()
+
+    url = authorize_url + "&state=bar"
+    rv = test_client.post(url, data={"user_id": "1"})
+    assert "code=" in rv.location
+
+    params = dict(url_decode(urlparse.urlparse(rv.location).query))
+    assert params["state"] == "bar"
+
+    code = params["code"]
+    rv = test_client.post(
+        "/oauth/token",
+        data={
+            "grant_type": "authorization_code",
+            "client_id": "client-id",
+            "client_secret": "client-secret",
+            "code": code,
+        },
+    )
+    resp = json.loads(rv.data)
+    assert "access_token" in resp
+    assert "refresh_token" in resp
+
+
+def test_token_generator(app, test_client, client, server):
+    m = "tests.flask.test_oauth2.oauth2_server:token_generator"
+    app.config.update({"OAUTH2_ACCESS_TOKEN_GENERATOR": m})
+    server.load_config(app.config)
+    client.set_client_metadata(
+        {
+            "redirect_uris": ["https://a.b"],
+            "scope": "profile address",
+            "token_endpoint_auth_method": "none",
+            "response_types": ["code"],
+            "grant_types": ["authorization_code"],
+        }
+    )
+    db.session.add(client)
+    db.session.commit()
+
+    rv = test_client.post(authorize_url, data={"user_id": "1"})
+    assert "code=" in rv.location
+
+    params = dict(url_decode(urlparse.urlparse(rv.location).query))
+    code = params["code"]
+    rv = test_client.post(
+        "/oauth/token",
+        data={
+            "grant_type": "authorization_code",
+            "code": code,
+            "client_id": "client-id",
+        },
+    )
+    resp = json.loads(rv.data)
+    assert "access_token" in resp
+    assert "c-authorization_code.1." in resp["access_token"]

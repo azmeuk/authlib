@@ -1,6 +1,4 @@
 import base64
-import os
-import unittest
 
 from flask import Flask
 from flask import request
@@ -76,27 +74,11 @@ def create_flask_app():
     return app
 
 
-class TestCase(unittest.TestCase):
-    def setUp(self):
-        os.environ["AUTHLIB_INSECURE_TRANSPORT"] = "true"
-        app = create_flask_app()
-
-        self._ctx = app.app_context()
-        self._ctx.push()
-
-        db.init_app(app)
-        db.create_all()
-
-        self.app = app
-        self.client = app.test_client()
-
-    def tearDown(self):
-        db.drop_all()
-        self._ctx.pop()
-        os.environ.pop("AUTHLIB_INSECURE_TRANSPORT")
-
-
 def create_basic_header(username, password):
     text = f"{username}:{password}"
     auth = to_unicode(base64.b64encode(to_bytes(text)))
     return {"Authorization": "Basic " + auth}
+
+
+def create_bearer_header(token):
+    return {"Authorization": "Bearer " + token}
