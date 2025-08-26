@@ -9,7 +9,7 @@ Here you can see the full list of changes between each Authlib release.
 Version 1.6.3
 -------------
 
-**Unreleased**
+**Released on Aug 26, 2025**
 
 - OIDC ``id_token`` are signed according to ``id_token_signed_response_alg``
   client metadata. :issue:`755`
