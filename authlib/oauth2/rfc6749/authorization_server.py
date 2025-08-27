@@ -251,8 +251,9 @@ class AuthorizationServer(Hookable):
         """Validate current HTTP request for authorization page. This page
         is designed for resource owner to grant or deny the authorization.
         """
+        request = self.create_oauth2_request(request)
+
         try:
-            request = self.create_oauth2_request(request)
             request.user = end_user
 
             grant = self.get_authorization_grant(request)
