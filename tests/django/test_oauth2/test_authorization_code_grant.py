@@ -1,4 +1,5 @@
 import json
+import os
 
 import pytest
 from django.test import override_settings
@@ -167,6 +168,20 @@ class AuthorizationCodeTest(TestCase):
         data = self.get_token_response()
         assert "access_token" in data
         assert "refresh_token" in data
+
+    def test_insecure_transport_error_with_payload_access(self):
+        """Test that InsecureTransportError is raised properly without AttributeError
+        when accessing request.payload on non-HTTPS requests (issue #795)."""
+        del os.environ["AUTHLIB_INSECURE_TRANSPORT"]
+        server = self.create_server()
+        self.prepare_data()
+
+        request = self.factory.get(
+            "http://idprovider.test:8000/authorize?response_type=code&client_id=client"
+        )
+
+        with pytest.raises(errors.InsecureTransportError):
+            server.get_consent_grant(request)
 
     def get_token_response(self):
         server = self.create_server()

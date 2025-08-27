@@ -17,7 +17,7 @@ class TestCase(_TestCase):
 
     def tearDown(self):
         super().tearDown()
-        os.environ.pop("AUTHLIB_INSECURE_TRANSPORT")
+        os.environ.pop("AUTHLIB_INSECURE_TRANSPORT", None)
 
     def create_server(self):
         return AuthorizationServer(Client, OAuth2Token)

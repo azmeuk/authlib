@@ -6,6 +6,13 @@ Changelog
 
 Here you can see the full list of changes between each Authlib release.
 
+Version 1.6.4
+-------------
+
+**Unreleased**
+
+- Fix ``InsecureTransportError`` error raising. :issue:`795`
+
 Version 1.6.3
 -------------
 
