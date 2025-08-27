@@ -186,6 +186,15 @@ class JWSTest(unittest.TestCase):
         with pytest.raises(errors.DecodeError):
             jws.deserialize_json(s, "")
 
+    def test_serialize_json_overwrite_header(self):
+        jws = JsonWebSignature()
+        protected = {"alg": "HS256", "kid": "a"}
+        header = {"protected": protected}
+        result = jws.serialize_json(header, b"", "secret")
+        result["header"] = {"kid": "b"}
+        decoded = jws.deserialize_json(result, "secret")
+        assert decoded["header"]["kid"] == "a"
+
     def test_validate_header(self):
         jws = JsonWebSignature(private_headers=[])
         protected = {"alg": "HS256", "invalid": "k"}
