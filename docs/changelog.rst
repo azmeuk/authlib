@@ -12,6 +12,7 @@ Version 1.6.4
 **Unreleased**
 
 - Fix ``InsecureTransportError`` error raising. :issue:`795`
+- Fix ``response_mode=form_post`` with Starlette client. :issue:`793`
 
 Version 1.6.3
 -------------
