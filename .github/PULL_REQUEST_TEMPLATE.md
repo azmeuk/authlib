@@ -25,6 +25,7 @@ Please indicate if this PR is related to other issues or PRs.
 
 **Checklist**
 
+- [ ] The commits follow the [conventional commits](https://www.conventionalcommits.org) specification.
 - [ ] You ran the linters with ``prek``.
 - [ ] You wrote unit test to demonstrate the bug you are fixing, or to stress the feature you are bringing.
 - [ ] You reached 100% of code coverage on the code you edited, without abusive use of `pragma: no cover`
