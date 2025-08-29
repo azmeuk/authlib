@@ -62,7 +62,7 @@ clients = [
     "flask",
     "httpx",
     "requests",
-    "starlette",
+    "starlette[full]",
     # there is an incompatibility with asgiref, pypy and coverage,
     # see https://github.com/django/asgiref/issues/393 for details
     "asgiref==3.6.0 ; implementation_name == 'pypy' and python_version < '3.10'",

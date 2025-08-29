@@ -63,15 +63,22 @@ class StarletteOAuth2App(
     client_cls = AsyncOAuth2Client
 
     async def authorize_access_token(self, request, **kwargs):
-        error = request.query_params.get("error")
-        if error:
-            description = request.query_params.get("error_description")
-            raise OAuthError(error=error, description=description)
+        if request.scope.get("method", "GET") == "GET":
+            error = request.query_params.get("error")
+            if error:
+                description = request.query_params.get("error_description")
+                raise OAuthError(error=error, description=description)
 
-        params = {
-            "code": request.query_params.get("code"),
-            "state": request.query_params.get("state"),
-        }
+            params = {
+                "code": request.query_params.get("code"),
+                "state": request.query_params.get("state"),
+            }
+        else:
+            async with request.form() as form:
+                params = {
+                    "code": form.get("code"),
+                    "state": form.get("state"),
+                }
 
         if self.framework.cache:
             session = None

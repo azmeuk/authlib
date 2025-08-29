@@ -310,3 +310,48 @@ async def test_oauth2_authorize_with_metadata():
     req = Request(req_scope)
     resp = await client.authorize_redirect(req, "https://b.com/bar")
     assert resp.status_code == 302
+
+
+@pytest.mark.asyncio
+async def test_oauth2_authorize_form_post_callback():
+    """Test that POST callbacks (form_post response mode) work properly."""
+    oauth = OAuth()
+    transport = ASGITransport(
+        AsyncPathMapDispatch({"/token": {"body": get_bearer_token()}})
+    )
+    client = oauth.register(
+        "dev",
+        client_id="dev",
+        client_secret="dev",
+        api_base_url="https://i.b/api",
+        access_token_url="https://i.b/token",
+        authorize_url="https://i.b/authorize",
+        client_kwargs={
+            "transport": transport,
+        },
+    )
+
+    req = Request({"type": "http", "session": {}})
+    resp = await client.authorize_redirect(req, "https://b.com/bar")
+    url = resp.headers.get("Location")
+    state = dict(url_decode(urlparse.urlparse(url).query))["state"]
+
+    req_scope_post = {
+        "type": "http",
+        "method": "POST",
+        "path": "/callback",
+        "query_string": b"",
+        "headers": [(b"content-type", b"application/x-www-form-urlencoded")],
+        "session": req.session,
+    }
+
+    async def receive():
+        return {
+            "type": "http.request",
+            "body": f"code=test_code&state={state}".encode(),
+        }
+
+    req_post = Request(req_scope_post, receive=receive)
+
+    token = await client.authorize_access_token(req_post)
+    assert token["access_token"] == "a"
