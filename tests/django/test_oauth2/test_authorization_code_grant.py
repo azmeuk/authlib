@@ -62,13 +62,15 @@ def test_get_consent_grant_client(factory, server, client):
     with pytest.raises(errors.InvalidClientError):
         server.get_consent_grant(request)
 
-    url = "/authorize?response_type=code&client_id=client-id"
+    url = "/authorize?response_type=code&client_id=invalid-id"
     request = factory.get(url)
     with pytest.raises(errors.InvalidClientError):
         server.get_consent_grant(request)
 
     client.response_type = ""
     client.save()
+    url = "/authorize?response_type=code&client_id=client-id"
+    request = factory.get(url)
     with pytest.raises(errors.UnauthorizedClientError):
         server.get_consent_grant(request)
 
