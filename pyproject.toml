@@ -12,7 +12,7 @@ dependencies = [
 license = {text = "BSD-3-Clause"}
 requires-python = ">=3.9"
 dynamic = ["version"]
-readme = "README.rst"
+readme = "README.md"
 classifiers = [
   "Development Status :: 5 - Production/Stable",
   "Environment :: Console",
