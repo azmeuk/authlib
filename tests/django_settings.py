@@ -34,3 +34,6 @@ AUTHLIB_OAUTH_CLIENTS = {
 }
 
 USE_TZ = True
+
+# Default OAuth1 configuration for tests
+AUTHLIB_OAUTH1_PROVIDER = {"signature_methods": ["PLAINTEXT", "HMAC-SHA1"]}
