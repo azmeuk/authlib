@@ -226,6 +226,20 @@ def test_validate_header():
     assert isinstance(s, dict)
 
 
+def test_validate_crit_header():
+    jws = JsonWebSignature()
+    protected = {"alg": "HS256", "kid": "1", "crit": ["kid"]}
+    jws.serialize(protected, b"hello", "secret")
+
+    protected = {"alg": "HS256", "crit": ["kid"]}
+    with pytest.raises(errors.InvalidCritHeaderParameterNameError):
+        jws.serialize(protected, b"hello", "secret")
+
+    protected = {"alg": "HS256", "invalid": "1", "crit": ["invalid"]}
+    with pytest.raises(errors.InvalidCritHeaderParameterNameError):
+        jws.serialize(protected, b"hello", "secret")
+
+
 def test_ES512_alg():
     jws = JsonWebSignature()
     private_key = read_file_path("secp521r1-private.json")

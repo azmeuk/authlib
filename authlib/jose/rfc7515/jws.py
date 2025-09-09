@@ -4,6 +4,7 @@ from authlib.common.encoding import to_unicode
 from authlib.common.encoding import urlsafe_b64encode
 from authlib.jose.errors import BadSignatureError
 from authlib.jose.errors import DecodeError
+from authlib.jose.errors import InvalidCritHeaderParameterNameError
 from authlib.jose.errors import InvalidHeaderParameterNameError
 from authlib.jose.errors import MissingAlgorithmError
 from authlib.jose.errors import UnsupportedAlgorithmError
@@ -64,6 +65,7 @@ class JsonWebSignature:
         """
         jws_header = JWSHeader(protected, None)
         self._validate_private_headers(protected)
+        self._validate_crit_headers(protected)
         algorithm, key = self._prepare_algorithm_key(protected, payload, key)
 
         protected_segment = json_b64encode(jws_header.protected)
@@ -132,6 +134,7 @@ class JsonWebSignature:
 
         def _sign(jws_header):
             self._validate_private_headers(jws_header)
+            self._validate_crit_headers(jws_header)
             _alg, _key = self._prepare_algorithm_key(jws_header, payload, key)
 
             protected_segment = json_b64encode(jws_header.protected)
@@ -271,6 +274,18 @@ class JsonWebSignature:
             for k in header:
                 if k not in names:
                     raise InvalidHeaderParameterNameError(k)
+
+    def _validate_crit_headers(self, header):
+        if "crit" in header:
+            crit_headers = header["crit"]
+            names = self.REGISTERED_HEADER_PARAMETER_NAMES.copy()
+            if self._private_headers:
+                names = names.union(self._private_headers)
+            for k in crit_headers:
+                if k not in names:
+                    raise InvalidCritHeaderParameterNameError(k)
+                elif k not in header:
+                    raise InvalidCritHeaderParameterNameError(k)
 
     def _validate_json_jws(self, payload_segment, payload, header_obj, key):
         protected_segment = header_obj.get("protected")
