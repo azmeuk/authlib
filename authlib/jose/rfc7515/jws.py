@@ -97,6 +97,7 @@ class JsonWebSignature:
             raise DecodeError("Not enough segments") from exc
 
         protected = _extract_header(protected_segment)
+        self._validate_crit_headers(protected)
         jws_header = JWSHeader(protected, None)
 
         payload = _extract_payload(payload_segment)
@@ -302,6 +303,7 @@ class JsonWebSignature:
         if header and not isinstance(header, dict):
             raise DecodeError('Invalid "header" value')
 
+        self._validate_crit_headers(protected)
         jws_header = JWSHeader(protected, header)
         algorithm, key = self._prepare_algorithm_key(jws_header, payload, key)
         signing_input = b".".join([protected_segment, payload_segment])
