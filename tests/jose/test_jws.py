@@ -254,6 +254,27 @@ def test_validate_crit_header_with_deserialize():
         jws.deserialize(case2, "secret")
 
 
+def test_unprotected_crit_rejected_in_json_serialize():
+    jws = JsonWebSignature()
+    protected = {"alg": "HS256", "kid": "a"}
+    # Place 'crit' in unprotected header; must be rejected
+    header = {"protected": protected, "header": {"kid": "a", "crit": ["kid"]}}
+    with pytest.raises(errors.InvalidHeaderParameterNameError):
+        jws.serialize_json(header, b"hello", "secret")
+
+
+def test_unprotected_crit_rejected_in_json_deserialize():
+    jws = JsonWebSignature()
+    protected = {"alg": "HS256", "kid": "a"}
+    header = {"protected": protected, "header": {"kid": "a"}}
+    data = jws.serialize_json(header, b"hello", "secret")
+    # Tamper by adding 'crit' into the unprotected header; must be rejected
+    data_tampered = dict(data)
+    data_tampered["header"] = {"kid": "a", "crit": ["kid"]}
+    with pytest.raises(errors.InvalidHeaderParameterNameError):
+        jws.deserialize_json(data_tampered, "secret")
+
+
 def test_ES512_alg():
     jws = JsonWebSignature()
     private_key = read_file_path("secp521r1-private.json")
