@@ -17,7 +17,7 @@ def client(client, db):
         {
             "scope": "openid profile",
             "grant_types": ["password"],
-            "redirect_uris": ["http://localhost/authorized"],
+            "redirect_uris": ["https://client.test/authorized"],
         }
     )
     db.session.add(client)
@@ -155,7 +155,7 @@ def test_invalid_grant_type(test_client, server, db, client):
         {
             "scope": "openid profile",
             "grant_types": ["invalid"],
-            "redirect_uris": ["http://localhost/authorized"],
+            "redirect_uris": ["https://client.test/authorized"],
         }
     )
     db.session.add(client)

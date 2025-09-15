@@ -36,7 +36,7 @@ def server(server):
 def client(client, db):
     client.set_client_metadata(
         {
-            "redirect_uris": ["https://a.b"],
+            "redirect_uris": ["https://client.test"],
             "scope": "profile address",
             "token_endpoint_auth_method": "none",
             "response_types": ["code"],
@@ -83,7 +83,7 @@ def test_trusted_client_without_code_challenge(test_client, db, client):
     client.client_secret = "client-secret"
     client.set_client_metadata(
         {
-            "redirect_uris": ["https://a.b"],
+            "redirect_uris": ["https://client.test"],
             "scope": "profile address",
             "token_endpoint_auth_method": "client_secret_basic",
             "response_types": ["code"],
@@ -138,7 +138,7 @@ def test_trusted_client_missing_code_verifier(test_client, db, client):
     client.client_secret = "client-secret"
     client.set_client_metadata(
         {
-            "redirect_uris": ["https://a.b"],
+            "redirect_uris": ["https://client.test"],
             "scope": "profile address",
             "token_endpoint_auth_method": "client_secret_basic",
             "response_types": ["code"],

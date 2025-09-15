@@ -58,7 +58,7 @@ def server(server):
 def client(client, db):
     client.set_client_metadata(
         {
-            "redirect_uris": ["https://a.b"],
+            "redirect_uris": ["https://client.test"],
             "scope": "openid profile address",
             "response_types": [
                 "code id_token",
@@ -88,7 +88,7 @@ def test_invalid_client_id(test_client):
             "state": "bar",
             "nonce": "abc",
             "scope": "openid profile",
-            "redirect_uri": "https://a.b",
+            "redirect_uri": "https://client.test",
             "user_id": "1",
         },
     )
@@ -103,7 +103,7 @@ def test_invalid_client_id(test_client):
             "state": "bar",
             "nonce": "abc",
             "scope": "openid profile",
-            "redirect_uri": "https://a.b",
+            "redirect_uri": "https://client.test",
             "user_id": "1",
         },
     )
@@ -119,7 +119,7 @@ def test_require_nonce(test_client):
             "response_type": "code token",
             "scope": "openid profile",
             "state": "bar",
-            "redirect_uri": "https://a.b",
+            "redirect_uri": "https://client.test",
             "user_id": "1",
         },
     )
@@ -136,7 +136,7 @@ def test_invalid_response_type(test_client):
             "state": "bar",
             "nonce": "abc",
             "scope": "profile",
-            "redirect_uri": "https://a.b",
+            "redirect_uri": "https://client.test",
             "user_id": "1",
         },
     )
@@ -153,7 +153,7 @@ def test_invalid_scope(test_client):
             "state": "bar",
             "nonce": "abc",
             "scope": "profile",
-            "redirect_uri": "https://a.b",
+            "redirect_uri": "https://client.test",
             "user_id": "1",
         },
     )
@@ -169,7 +169,7 @@ def test_access_denied(test_client):
             "state": "bar",
             "nonce": "abc",
             "scope": "openid profile",
-            "redirect_uri": "https://a.b",
+            "redirect_uri": "https://client.test",
         },
     )
     assert "error=access_denied" in rv.location
@@ -184,7 +184,7 @@ def test_code_access_token(test_client):
             "state": "bar",
             "nonce": "abc",
             "scope": "openid profile",
-            "redirect_uri": "https://a.b",
+            "redirect_uri": "https://client.test",
             "user_id": "1",
         },
     )
@@ -201,7 +201,7 @@ def test_code_access_token(test_client):
         "/oauth/token",
         data={
             "grant_type": "authorization_code",
-            "redirect_uri": "https://a.b",
+            "redirect_uri": "https://client.test",
             "code": code,
         },
         headers=headers,
@@ -220,7 +220,7 @@ def test_code_id_token(test_client):
             "state": "bar",
             "nonce": "abc",
             "scope": "openid profile",
-            "redirect_uri": "https://a.b",
+            "redirect_uri": "https://client.test",
             "user_id": "1",
         },
     )
@@ -241,7 +241,7 @@ def test_code_id_token(test_client):
         "/oauth/token",
         data={
             "grant_type": "authorization_code",
-            "redirect_uri": "https://a.b",
+            "redirect_uri": "https://client.test",
             "code": code,
         },
         headers=headers,
@@ -260,7 +260,7 @@ def test_code_id_token_access_token(test_client):
             "state": "bar",
             "nonce": "abc",
             "scope": "openid profile",
-            "redirect_uri": "https://a.b",
+            "redirect_uri": "https://client.test",
             "user_id": "1",
         },
     )
@@ -278,7 +278,7 @@ def test_code_id_token_access_token(test_client):
         "/oauth/token",
         data={
             "grant_type": "authorization_code",
-            "redirect_uri": "https://a.b",
+            "redirect_uri": "https://client.test",
             "code": code,
         },
         headers=headers,
@@ -298,7 +298,7 @@ def test_response_mode_query(test_client):
             "state": "bar",
             "nonce": "abc",
             "scope": "openid profile",
-            "redirect_uri": "https://a.b",
+            "redirect_uri": "https://client.test",
             "user_id": "1",
         },
     )
@@ -320,7 +320,7 @@ def test_response_mode_form_post(test_client):
             "state": "bar",
             "nonce": "abc",
             "scope": "openid profile",
-            "redirect_uri": "https://a.b",
+            "redirect_uri": "https://client.test",
             "user_id": "1",
         },
     )

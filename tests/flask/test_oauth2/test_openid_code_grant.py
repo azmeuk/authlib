@@ -25,7 +25,7 @@ from .oauth2_server import create_basic_header
 def client(client, db):
     client.set_client_metadata(
         {
-            "redirect_uris": ["https://a.b"],
+            "redirect_uris": ["https://client.test"],
             "scope": "openid profile address",
             "response_types": ["code"],
             "grant_types": ["authorization_code"],
@@ -83,7 +83,7 @@ def test_authorize_token(test_client, server):
             "client_id": "client-id",
             "state": "bar",
             "scope": "openid profile",
-            "redirect_uri": "https://a.b",
+            "redirect_uri": "https://client.test",
             "user_id": "1",
         },
     )
@@ -98,7 +98,7 @@ def test_authorize_token(test_client, server):
         "/oauth/token",
         data={
             "grant_type": "authorization_code",
-            "redirect_uri": "https://a.b",
+            "redirect_uri": "https://client.test",
             "code": code,
         },
         headers=headers,
@@ -130,7 +130,7 @@ def test_pure_code_flow(test_client, server):
             "client_id": "client-id",
             "state": "bar",
             "scope": "profile",
-            "redirect_uri": "https://a.b",
+            "redirect_uri": "https://client.test",
             "user_id": "1",
         },
     )
@@ -145,7 +145,7 @@ def test_pure_code_flow(test_client, server):
         "/oauth/token",
         data={
             "grant_type": "authorization_code",
-            "redirect_uri": "https://a.b",
+            "redirect_uri": "https://client.test",
             "code": code,
         },
         headers=headers,
@@ -165,7 +165,7 @@ def test_require_nonce(test_client, server):
             "user_id": "1",
             "state": "bar",
             "scope": "openid profile",
-            "redirect_uri": "https://a.b",
+            "redirect_uri": "https://client.test",
         },
     )
     params = dict(url_decode(urlparse.urlparse(rv.location).query))
@@ -184,7 +184,7 @@ def test_nonce_replay(test_client, server):
         "state": "bar",
         "nonce": "abc",
         "scope": "openid profile",
-        "redirect_uri": "https://a.b",
+        "redirect_uri": "https://client.test",
     }
     rv = test_client.post("/oauth/authorize", data=data)
     assert "code=" in rv.location
@@ -203,7 +203,7 @@ def test_prompt(test_client, server):
         ("state", "bar"),
         ("nonce", "abc"),
         ("scope", "openid profile"),
-        ("redirect_uri", "https://a.b"),
+        ("redirect_uri", "https://client.test"),
     ]
     query = url_encode(params)
     rv = test_client.get("/oauth/authorize?" + query)
@@ -232,7 +232,7 @@ def test_prompt_none_not_logged(test_client, server):
         ("state", "bar"),
         ("nonce", "abc"),
         ("scope", "openid profile"),
-        ("redirect_uri", "https://a.b"),
+        ("redirect_uri", "https://client.test"),
         ("prompt", "none"),
     ]
     query = url_encode(params)
@@ -251,7 +251,7 @@ def test_client_metadata_custom_alg(test_client, server, client, db, app):
     )
     client.set_client_metadata(
         {
-            "redirect_uris": ["https://a.b"],
+            "redirect_uris": ["https://client.test"],
             "scope": "openid profile address",
             "response_types": ["code"],
             "grant_types": ["authorization_code"],
@@ -269,7 +269,7 @@ def test_client_metadata_custom_alg(test_client, server, client, db, app):
             "client_id": "client-id",
             "state": "bar",
             "scope": "openid profile",
-            "redirect_uri": "https://a.b",
+            "redirect_uri": "https://client.test",
             "user_id": "1",
         },
     )
@@ -280,7 +280,7 @@ def test_client_metadata_custom_alg(test_client, server, client, db, app):
         "/oauth/token",
         data={
             "grant_type": "authorization_code",
-            "redirect_uri": "https://a.b",
+            "redirect_uri": "https://client.test",
             "code": code,
         },
         headers=headers,
@@ -304,7 +304,7 @@ def test_client_metadata_alg_none(test_client, server, app, db, client):
     )
     client.set_client_metadata(
         {
-            "redirect_uris": ["https://a.b"],
+            "redirect_uris": ["https://client.test"],
             "scope": "openid profile address",
             "response_types": ["code"],
             "grant_types": ["authorization_code"],
@@ -322,7 +322,7 @@ def test_client_metadata_alg_none(test_client, server, app, db, client):
             "client_id": "client-id",
             "state": "bar",
             "scope": "openid profile",
-            "redirect_uri": "https://a.b",
+            "redirect_uri": "https://client.test",
             "user_id": "1",
         },
     )
@@ -333,7 +333,7 @@ def test_client_metadata_alg_none(test_client, server, app, db, client):
         "/oauth/token",
         data={
             "grant_type": "authorization_code",
-            "redirect_uri": "https://a.b",
+            "redirect_uri": "https://client.test",
             "code": code,
         },
         headers=headers,
@@ -388,7 +388,7 @@ def test_authorize_token_algs(test_client, server, app, alg, private_key, public
             "client_id": "client-id",
             "state": "bar",
             "scope": "openid profile",
-            "redirect_uri": "https://a.b",
+            "redirect_uri": "https://client.test",
             "user_id": "1",
         },
     )
@@ -403,7 +403,7 @@ def test_authorize_token_algs(test_client, server, app, alg, private_key, public
         "/oauth/token",
         data={
             "grant_type": "authorization_code",
-            "redirect_uri": "https://a.b",
+            "redirect_uri": "https://client.test",
             "code": code,
         },
         headers=headers,

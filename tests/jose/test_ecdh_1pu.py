@@ -674,7 +674,7 @@ def test_ecdh_1pu_encryption_with_json_serialization():
         "apv": "Qm9iIGFuZCBDaGFybGll",
     }
 
-    unprotected = {"jku": "https://alice.example.com/keys.jwks"}
+    unprotected = {"jku": "https://provider.test/jwks"}
 
     recipients = [
         {"header": {"kid": "bob-key-2"}},
@@ -795,7 +795,7 @@ def test_ecdh_1pu_decryption_with_json_serialization():
         + "UVd4cFkyVSIsImFwdiI6IlFtOWlJR0Z1WkNCRGFHRnliR2xsIiwiZXBrIjp7Imt0eSI6Ik9L"
         + "UCIsImNydiI6IlgyNTUxOSIsIngiOiJrOW9mX2NwQWFqeTBwb1c1Z2FpeFhHczluSGt3ZzFB"
         + "RnFVQUZhMzlkeUJjIn19",
-        "unprotected": {"jku": "https://alice.example.com/keys.jwks"},
+        "unprotected": {"jku": "https://provider.test/jwks"},
         "recipients": [
             {
                 "header": {"kid": "bob-key-2"},
@@ -831,9 +831,7 @@ def test_ecdh_1pu_decryption_with_json_serialization():
         },
     }
 
-    assert rv_at_bob["header"]["unprotected"] == {
-        "jku": "https://alice.example.com/keys.jwks"
-    }
+    assert rv_at_bob["header"]["unprotected"] == {"jku": "https://provider.test/jwks"}
 
     assert rv_at_bob["header"]["recipients"] == [
         {"header": {"kid": "bob-key-2"}},
@@ -865,7 +863,7 @@ def test_ecdh_1pu_decryption_with_json_serialization():
     }
 
     assert rv_at_charlie["header"]["unprotected"] == {
-        "jku": "https://alice.example.com/keys.jwks"
+        "jku": "https://provider.test/jwks"
     }
 
     assert rv_at_charlie["header"]["recipients"] == [
@@ -911,7 +909,7 @@ def test_ecdh_1pu_jwe_with_json_serialization_when_kid_is_not_specified():
         "apv": "Qm9iIGFuZCBDaGFybGll",
     }
 
-    unprotected = {"jku": "https://alice.example.com/keys.jwks"}
+    unprotected = {"jku": "https://provider.test/jwks"}
 
     recipients = [
         {"header": {"kid": "bob-key-2"}},
@@ -996,7 +994,7 @@ def test_ecdh_1pu_jwe_with_json_serialization_when_kid_is_specified():
         "apv": "Qm9iIGFuZCBDaGFybGll",
     }
 
-    unprotected = {"jku": "https://alice.example.com/keys.jwks"}
+    unprotected = {"jku": "https://provider.test/jwks"}
 
     recipients = [
         {"header": {"kid": "bob-key-2"}},
@@ -1085,7 +1083,7 @@ def test_ecdh_1pu_jwe_with_json_serialization_when_kid_is_provided_separately_on
         "apv": "Qm9iIGFuZCBDaGFybGll",
     }
 
-    unprotected = {"jku": "https://alice.example.com/keys.jwks"}
+    unprotected = {"jku": "https://provider.test/jwks"}
 
     recipients = [
         {
@@ -1169,7 +1167,7 @@ def test_ecdh_1pu_jwe_with_json_serialization_for_single_recipient():
         "apv": "Qm9i",
     }
 
-    unprotected = {"jku": "https://alice.example.com/keys.jwks"}
+    unprotected = {"jku": "https://provider.test/jwks"}
 
     recipients = [{"header": {"kid": "bob-key-2"}}]
 
@@ -1607,7 +1605,7 @@ def test_ecdh_1pu_decryption_fails_if_key_matches_to_no_recipient():
         "apv": "Qm9i",
     }
 
-    unprotected = {"jku": "https://alice.example.com/keys.jwks"}
+    unprotected = {"jku": "https://provider.test/jwks"}
 
     recipients = [{"header": {"kid": "bob-key-2"}}]
 

@@ -59,7 +59,7 @@ def test_invalid_token_type(token):
     }
     with OAuth2Session("foo", token=token) as sess:
         with pytest.raises(OAuthError):
-            sess.get("https://i.b")
+            sess.get("https://provider.test")
 
 
 def test_add_token_to_header(token):
@@ -73,7 +73,7 @@ def test_add_token_to_header(token):
 
     sess = OAuth2Session(client_id="foo", token=token)
     sess.send = verifier
-    sess.get("https://i.b")
+    sess.get("https://provider.test")
 
 
 def test_add_token_to_body(token):
@@ -84,7 +84,7 @@ def test_add_token_to_body(token):
 
     sess = OAuth2Session(client_id="foo", token=token, token_placement="body")
     sess.send = verifier
-    sess.post("https://i.b")
+    sess.post("https://provider.test")
 
 
 def test_add_token_to_uri(token):
@@ -95,11 +95,11 @@ def test_add_token_to_uri(token):
 
     sess = OAuth2Session(client_id="foo", token=token, token_placement="uri")
     sess.send = verifier
-    sess.get("https://i.b")
+    sess.get("https://provider.test")
 
 
 def test_create_authorization_url():
-    url = "https://example.com/authorize?foo=bar"
+    url = "https://provider.test/authorize?foo=bar"
 
     sess = OAuth2Session(client_id="foo")
     auth_url, state = sess.create_authorization_url(url)
@@ -109,10 +109,10 @@ def test_create_authorization_url():
 
     sess = OAuth2Session(client_id="foo", prompt="none")
     auth_url, state = sess.create_authorization_url(
-        url, state="foo", redirect_uri="https://i.b", scope="profile"
+        url, state="foo", redirect_uri="https://provider.test", scope="profile"
     )
     assert state == "foo"
-    assert "i.b" in auth_url
+    assert "provider.test" in auth_url
     assert "profile" in auth_url
     assert "prompt=none" in auth_url
 
@@ -120,7 +120,7 @@ def test_create_authorization_url():
 def test_code_challenge():
     sess = OAuth2Session(client_id="foo", code_challenge_method="S256")
 
-    url = "https://example.com/authorize"
+    url = "https://provider.test/authorize"
     auth_url, _ = sess.create_authorization_url(url, code_verifier=generate_token(48))
     assert "code_challenge" in auth_url
     assert "code_challenge_method=S256" in auth_url
@@ -128,14 +128,14 @@ def test_code_challenge():
 
 def test_token_from_fragment(token):
     sess = OAuth2Session("foo")
-    response_url = "https://i.b/callback#" + url_encode(token.items())
+    response_url = "https://provider.test/callback#" + url_encode(token.items())
     assert sess.token_from_fragment(response_url) == token
     token = sess.fetch_token(authorization_response=response_url)
     assert token == token
 
 
 def test_fetch_token_post(token):
-    url = "https://example.com/token"
+    url = "https://provider.test/token"
 
     def fake_send(r, **kwargs):
         assert "code=v" in r.body
@@ -148,7 +148,10 @@ def test_fetch_token_post(token):
 
     sess = OAuth2Session(client_id="foo")
     sess.send = fake_send
-    assert sess.fetch_token(url, authorization_response="https://i.b/?code=v") == token
+    assert (
+        sess.fetch_token(url, authorization_response="https://provider.test/?code=v")
+        == token
+    )
 
     sess = OAuth2Session(
         client_id="foo",
@@ -166,7 +169,7 @@ def test_fetch_token_post(token):
 
 
 def test_fetch_token_get(token):
-    url = "https://example.com/token"
+    url = "https://provider.test/token"
 
     def fake_send(r, **kwargs):
         assert "code=v" in r.url
@@ -179,7 +182,7 @@ def test_fetch_token_get(token):
     sess = OAuth2Session(client_id="foo")
     sess.send = fake_send
     token = sess.fetch_token(
-        url, authorization_response="https://i.b/?code=v", method="GET"
+        url, authorization_response="https://provider.test/?code=v", method="GET"
     )
     assert token == token
 
@@ -196,7 +199,7 @@ def test_fetch_token_get(token):
 
 
 def test_token_auth_method_client_secret_post(token):
-    url = "https://example.com/token"
+    url = "https://provider.test/token"
 
     def fake_send(r, **kwargs):
         assert "code=v" in r.body
@@ -219,7 +222,7 @@ def test_token_auth_method_client_secret_post(token):
 
 
 def test_access_token_response_hook(token):
-    url = "https://example.com/token"
+    url = "https://provider.test/token"
 
     def access_token_response_hook(resp):
         assert resp.json() == token
@@ -232,7 +235,7 @@ def test_access_token_response_hook(token):
 
 
 def test_password_grant_type(token):
-    url = "https://example.com/token"
+    url = "https://provider.test/token"
 
     def fake_send(r, **kwargs):
         assert "username=v" in r.body
@@ -250,7 +253,7 @@ def test_password_grant_type(token):
 
 
 def test_client_credentials_type(token):
-    url = "https://example.com/token"
+    url = "https://provider.test/token"
 
     def fake_send(r, **kwargs):
         assert "grant_type=client_credentials" in r.body
@@ -281,7 +284,7 @@ def test_cleans_previous_token_before_fetching_new_one(token):
     past = now - 7200
     token["expires_at"] = past
     new_token["expires_at"] = now + 3600
-    url = "https://example.com/token"
+    url = "https://provider.test/token"
 
     with mock.patch("time.time", lambda: now):
         sess = OAuth2Session(client_id="foo", token=token)
@@ -293,8 +296,8 @@ def test_mis_match_state(token):
     sess = OAuth2Session("foo")
     with pytest.raises(MismatchingStateException):
         sess.fetch_token(
-            "https://i.b/token",
-            authorization_response="https://i.b/no-state?code=abc",
+            "https://provider.test/token",
+            authorization_response="https://provider.test/no-state?code=abc",
             state="somestate",
         )
 
@@ -325,7 +328,7 @@ def test_token_expired():
     sess = OAuth2Session("foo", token=token)
     with pytest.raises(OAuthError):
         sess.get(
-            "https://i.b/token",
+            "https://provider.test/token",
         )
 
 
@@ -333,7 +336,7 @@ def test_missing_token():
     sess = OAuth2Session("foo")
     with pytest.raises(OAuthError):
         sess.get(
-            "https://i.b/token",
+            "https://provider.test/token",
         )
 
 
@@ -355,7 +358,7 @@ def test_register_compliance_hook(token):
         protected_request,
     )
     sess.send = mock_json_response({"name": "a"})
-    sess.get("https://i.b/user")
+    sess.get("https://resource.test/user")
 
 
 def test_auto_refresh_token(token):
@@ -370,11 +373,11 @@ def test_auto_refresh_token(token):
     sess = OAuth2Session(
         "foo",
         token=old_token,
-        token_endpoint="https://i.b/token",
+        token_endpoint="https://provider.test/token",
         update_token=update_token,
     )
     sess.send = mock_json_response(token)
-    sess.get("https://i.b/user")
+    sess.get("https://resource.test/user")
     assert update_token.called
 
 
@@ -389,22 +392,22 @@ def test_auto_refresh_token2(token):
     sess = OAuth2Session(
         "foo",
         token=old_token,
-        token_endpoint="https://i.b/token",
+        token_endpoint="https://provider.test/token",
         grant_type="client_credentials",
     )
     sess.send = mock_json_response(token)
-    sess.get("https://i.b/user")
+    sess.get("https://resource.test/user")
     assert not update_token.called
 
     sess = OAuth2Session(
         "foo",
         token=old_token,
-        token_endpoint="https://i.b/token",
+        token_endpoint="https://provider.test/token",
         grant_type="client_credentials",
         update_token=update_token,
     )
     sess.send = mock_json_response(token)
-    sess.get("https://i.b/user")
+    sess.get("https://resource.test/user")
     assert update_token.called
 
 
@@ -412,13 +415,15 @@ def test_revoke_token():
     sess = OAuth2Session("a")
     answer = {"status": "ok"}
     sess.send = mock_json_response(answer)
-    resp = sess.revoke_token("https://i.b/token", "hi")
+    resp = sess.revoke_token("https://provider.test/token", "hi")
     assert resp.json() == answer
-    resp = sess.revoke_token("https://i.b/token", "hi", token_type_hint="access_token")
+    resp = sess.revoke_token(
+        "https://provider.test/token", "hi", token_type_hint="access_token"
+    )
     assert resp.json() == answer
 
     def revoke_token_request(url, headers, data):
-        assert url == "https://i.b/token"
+        assert url == "https://provider.test/token"
         return url, headers, data
 
     sess.register_compliance_hook(
@@ -426,7 +431,7 @@ def test_revoke_token():
         revoke_token_request,
     )
     sess.revoke_token(
-        "https://i.b/token", "hi", body="", token_type_hint="access_token"
+        "https://provider.test/token", "hi", body="", token_type_hint="access_token"
     )
 
 
@@ -438,13 +443,13 @@ def test_introspect_token():
         "username": "jdoe",
         "scope": "read write dolphin",
         "sub": "Z5O3upPC88QrAjx00dis",
-        "aud": "https://protected.example.net/resource",
-        "iss": "https://server.example.com/",
+        "aud": "https://resource.test/resource",
+        "iss": "https://provider.test/",
         "exp": 1419356238,
         "iat": 1419350238,
     }
     sess.send = mock_json_response(answer)
-    resp = sess.introspect_token("https://i.b/token", "hi")
+    resp = sess.introspect_token("https://provider.test/token", "hi")
     assert resp.json() == answer
 
 
@@ -453,7 +458,7 @@ def test_client_secret_jwt(token):
     sess.register_client_auth_method(ClientSecretJWT())
 
     mock_assertion_response(token, sess)
-    token = sess.fetch_token("https://i.b/token")
+    token = sess.fetch_token("https://provider.test/token")
     assert token == token
 
 
@@ -464,7 +469,7 @@ def test_client_secret_jwt2(token):
         token_endpoint_auth_method=ClientSecretJWT(),
     )
     mock_assertion_response(token, sess)
-    token = sess.fetch_token("https://i.b/token")
+    token = sess.fetch_token("https://provider.test/token")
     assert token == token
 
 
@@ -475,7 +480,7 @@ def test_private_key_jwt(token):
     )
     sess.register_client_auth_method(PrivateKeyJWT())
     mock_assertion_response(token, sess)
-    token = sess.fetch_token("https://i.b/token")
+    token = sess.fetch_token("https://provider.test/token")
     assert token == token
 
 
@@ -504,7 +509,7 @@ def test_custom_client_auth_method(token):
         return resp
 
     sess.send = fake_send
-    token = sess.fetch_token("https://i.b/token")
+    token = sess.fetch_token("https://provider.test/token")
     assert token == token
 
 
@@ -523,7 +528,7 @@ def test_use_client_token_auth(token):
 
     sess = requests.Session()
     sess.send = verifier
-    sess.get("https://i.b", auth=client.token_auth)
+    sess.get("https://provider.test", auth=client.token_auth)
 
 
 def test_use_default_request_timeout(token):
@@ -542,7 +547,7 @@ def test_use_default_request_timeout(token):
     )
 
     client.send = verifier
-    client.request("GET", "https://i.b", withhold_token=False)
+    client.request("GET", "https://provider.test", withhold_token=False)
 
 
 def test_override_default_request_timeout(token):
@@ -562,4 +567,6 @@ def test_override_default_request_timeout(token):
     )
 
     client.send = verifier
-    client.request("GET", "https://i.b", withhold_token=False, timeout=expected_timeout)
+    client.request(
+        "GET", "https://provider.test", withhold_token=False, timeout=expected_timeout
+    )

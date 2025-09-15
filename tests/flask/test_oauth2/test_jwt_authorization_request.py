@@ -80,7 +80,7 @@ def client_registration_endpoint(app, server, metadata, db):
 def client(client, db):
     client.set_client_metadata(
         {
-            "redirect_uris": ["https://a.b"],
+            "redirect_uris": ["https://client.test"],
             "scope": "profile address",
             "token_endpoint_auth_method": "client_secret_basic",
             "response_types": ["code"],
@@ -234,7 +234,7 @@ def test_client_require_signed_request_object(test_client, client, server, db):
     register_request_object_extension(server)
     client.set_client_metadata(
         {
-            "redirect_uris": ["https://a.b"],
+            "redirect_uris": ["https://client.test"],
             "scope": "profile address",
             "token_endpoint_auth_method": "client_secret_basic",
             "response_types": ["code"],
@@ -264,7 +264,7 @@ def test_client_require_signed_request_object_alg_none(test_client, client, serv
     register_request_object_extension(server)
     client.set_client_metadata(
         {
-            "redirect_uris": ["https://a.b"],
+            "redirect_uris": ["https://client.test"],
             "scope": "profile address",
             "token_endpoint_auth_method": "client_secret_basic",
             "response_types": ["code"],

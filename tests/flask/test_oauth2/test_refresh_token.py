@@ -39,7 +39,7 @@ def client(client, db):
         {
             "scope": "profile",
             "grant_types": ["refresh_token"],
-            "redirect_uris": ["http://localhost/authorized"],
+            "redirect_uris": ["https://client.test/authorized"],
         }
     )
     db.session.add(client)
@@ -183,7 +183,7 @@ def test_invalid_grant_type(test_client, client, db, token):
         {
             "scope": "profile",
             "grant_types": ["invalid"],
-            "redirect_uris": ["http://localhost/authorized"],
+            "redirect_uris": ["https://client.test/authorized"],
         }
     )
     db.session.add(client)

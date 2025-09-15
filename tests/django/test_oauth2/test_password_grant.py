@@ -35,7 +35,7 @@ def client(user):
         scope="",
         grant_type="password",
         token_endpoint_auth_method="client_secret_basic",
-        default_redirect_uri="https://a.b",
+        default_redirect_uri="https://client.test",
     )
     client.save()
     yield client

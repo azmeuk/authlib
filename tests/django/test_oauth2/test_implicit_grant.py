@@ -23,7 +23,7 @@ def client(user):
         response_type="token",
         scope="",
         token_endpoint_auth_method="none",
-        default_redirect_uri="https://a.b",
+        default_redirect_uri="https://client.test",
     )
     client.save()
     yield client

@@ -34,7 +34,7 @@ def server(server):
 def client(client, db):
     client.set_client_metadata(
         {
-            "redirect_uris": ["https://a.b/c"],
+            "redirect_uris": ["https://client.test/callback"],
             "scope": "openid profile",
             "token_endpoint_auth_method": "none",
             "response_types": ["id_token", "id_token token"],
@@ -63,7 +63,7 @@ def test_consent_view(test_client):
                 "client_id": "client-id",
                 "scope": "openid profile",
                 "state": "foo",
-                "redirect_uri": "https://a.b/c",
+                "redirect_uri": "https://client.test/callback",
                 "user_id": "1",
             },
         )
@@ -80,7 +80,7 @@ def test_require_nonce(test_client):
             "client_id": "client-id",
             "scope": "openid profile",
             "state": "bar",
-            "redirect_uri": "https://a.b/c",
+            "redirect_uri": "https://client.test/callback",
             "user_id": "1",
         },
     )
@@ -97,7 +97,7 @@ def test_missing_openid_in_scope(test_client):
             "scope": "profile",
             "state": "bar",
             "nonce": "abc",
-            "redirect_uri": "https://a.b/c",
+            "redirect_uri": "https://client.test/callback",
             "user_id": "1",
         },
     )
@@ -113,7 +113,7 @@ def test_denied(test_client):
             "scope": "openid profile",
             "state": "bar",
             "nonce": "abc",
-            "redirect_uri": "https://a.b/c",
+            "redirect_uri": "https://client.test/callback",
         },
     )
     assert "error=access_denied" in rv.location
@@ -128,7 +128,7 @@ def test_authorize_access_token(test_client):
             "scope": "openid profile",
             "state": "bar",
             "nonce": "abc",
-            "redirect_uri": "https://a.b/c",
+            "redirect_uri": "https://client.test/callback",
             "user_id": "1",
         },
     )
@@ -148,7 +148,7 @@ def test_authorize_id_token(test_client):
             "scope": "openid profile",
             "state": "bar",
             "nonce": "abc",
-            "redirect_uri": "https://a.b/c",
+            "redirect_uri": "https://client.test/callback",
             "user_id": "1",
         },
     )
@@ -168,7 +168,7 @@ def test_response_mode_query(test_client):
             "scope": "openid profile",
             "state": "bar",
             "nonce": "abc",
-            "redirect_uri": "https://a.b/c",
+            "redirect_uri": "https://client.test/callback",
             "user_id": "1",
         },
     )
@@ -188,7 +188,7 @@ def test_response_mode_form_post(test_client):
             "scope": "openid profile",
             "state": "bar",
             "nonce": "abc",
-            "redirect_uri": "https://a.b/c",
+            "redirect_uri": "https://client.test/callback",
             "user_id": "1",
         },
     )
@@ -201,7 +201,7 @@ def test_client_metadata_custom_alg(test_client, app, db, client):
     it should be used to sign id_tokens."""
     client.set_client_metadata(
         {
-            "redirect_uris": ["https://a.b/c"],
+            "redirect_uris": ["https://client.test/callback"],
             "scope": "openid profile",
             "token_endpoint_auth_method": "none",
             "response_types": ["id_token", "id_token token"],
@@ -219,7 +219,7 @@ def test_client_metadata_custom_alg(test_client, app, db, client):
             "client_id": "client-id",
             "scope": "openid profile",
             "state": "foo",
-            "redirect_uri": "https://a.b/c",
+            "redirect_uri": "https://client.test/callback",
             "user_id": "1",
             "nonce": "abc",
         },
@@ -234,7 +234,7 @@ def test_client_metadata_alg_none(test_client, app, db, client):
     forbidden in non implicit flows."""
     client.set_client_metadata(
         {
-            "redirect_uris": ["https://a.b/c"],
+            "redirect_uris": ["https://client.test/callback"],
             "scope": "openid profile",
             "token_endpoint_auth_method": "none",
             "response_types": ["id_token", "id_token token"],
@@ -252,7 +252,7 @@ def test_client_metadata_alg_none(test_client, app, db, client):
             "client_id": "client-id",
             "scope": "openid profile",
             "state": "foo",
-            "redirect_uri": "https://a.b/c",
+            "redirect_uri": "https://client.test/callback",
             "user_id": "1",
             "nonce": "abc",
         },

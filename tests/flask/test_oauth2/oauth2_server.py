@@ -68,7 +68,9 @@ def create_flask_app():
         {
             "SQLALCHEMY_TRACK_MODIFICATIONS": False,
             "SQLALCHEMY_DATABASE_URI": "sqlite://",
-            "OAUTH2_ERROR_URIS": [("invalid_client", "https://a.b/e#invalid_client")],
+            "OAUTH2_ERROR_URIS": [
+                ("invalid_client", "https://client.test/error#invalid_client")
+            ],
         }
     )
     return app

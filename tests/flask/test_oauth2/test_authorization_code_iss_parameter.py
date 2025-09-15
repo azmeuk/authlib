@@ -33,7 +33,7 @@ def server(server):
 def client(client, db):
     client.set_client_metadata(
         {
-            "redirect_uris": ["https://a.b"],
+            "redirect_uris": ["https://client.test"],
             "scope": "profile address",
             "token_endpoint_auth_method": "client_secret_basic",
             "response_types": ["code"],

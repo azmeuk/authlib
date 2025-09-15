@@ -110,10 +110,10 @@ def test_register_oauth1_remote_app():
     client_kwargs = dict(
         client_id="dev",
         client_secret="dev",
-        request_token_url="https://i.b/reqeust-token",
-        api_base_url="https://i.b/api",
-        access_token_url="https://i.b/token",
-        authorize_url="https://i.b/authorize",
+        request_token_url="https://provider.test/request-token",
+        api_base_url="https://resource.test/api",
+        access_token_url="https://provider.test/token",
+        authorize_url="https://provider.test/authorize",
         fetch_request_token=lambda: None,
         save_request_token=lambda token: token,
     )
@@ -137,16 +137,16 @@ def test_oauth1_authorize_cache():
         "dev",
         client_id="dev",
         client_secret="dev",
-        request_token_url="https://i.b/reqeust-token",
-        api_base_url="https://i.b/api",
-        access_token_url="https://i.b/token",
-        authorize_url="https://i.b/authorize",
+        request_token_url="https://provider.test/request-token",
+        api_base_url="https://resource.test/api",
+        access_token_url="https://provider.test/token",
+        authorize_url="https://provider.test/authorize",
     )
 
     with app.test_request_context():
         with mock.patch("requests.sessions.Session.send") as send:
             send.return_value = mock_send_value("oauth_token=foo&oauth_verifier=baz")
-            resp = client.authorize_redirect("https://b.com/bar")
+            resp = client.authorize_redirect("https://client.test/callback")
             assert resp.status_code == 302
             url = resp.headers.get("Location")
             assert "oauth_token=foo" in url
@@ -166,16 +166,16 @@ def test_oauth1_authorize_session():
         "dev",
         client_id="dev",
         client_secret="dev",
-        request_token_url="https://i.b/reqeust-token",
-        api_base_url="https://i.b/api",
-        access_token_url="https://i.b/token",
-        authorize_url="https://i.b/authorize",
+        request_token_url="https://provider.test/request-token",
+        api_base_url="https://resource.test/api",
+        access_token_url="https://provider.test/token",
+        authorize_url="https://provider.test/authorize",
     )
 
     with app.test_request_context():
         with mock.patch("requests.sessions.Session.send") as send:
             send.return_value = mock_send_value("oauth_token=foo&oauth_verifier=baz")
-            resp = client.authorize_redirect("https://b.com/bar")
+            resp = client.authorize_redirect("https://client.test/callback")
             assert resp.status_code == 302
             url = resp.headers.get("Location")
             assert "oauth_token=foo" in url
@@ -196,10 +196,10 @@ def test_register_oauth2_remote_app():
         "dev",
         client_id="dev",
         client_secret="dev",
-        api_base_url="https://i.b/api",
-        access_token_url="https://i.b/token",
-        refresh_token_url="https://i.b/token",
-        authorize_url="https://i.b/authorize",
+        api_base_url="https://resource.test/api",
+        access_token_url="https://provider.test/token",
+        refresh_token_url="https://provider.test/token",
+        authorize_url="https://provider.test/authorize",
         update_token=lambda name: "hi",
     )
     assert oauth.dev.name == "dev"
@@ -215,13 +215,13 @@ def test_oauth2_authorize():
         "dev",
         client_id="dev",
         client_secret="dev",
-        api_base_url="https://i.b/api",
-        access_token_url="https://i.b/token",
-        authorize_url="https://i.b/authorize",
+        api_base_url="https://resource.test/api",
+        access_token_url="https://provider.test/token",
+        authorize_url="https://provider.test/authorize",
     )
 
     with app.test_request_context():
-        resp = client.authorize_redirect("https://b.com/bar")
+        resp = client.authorize_redirect("https://client.test/callback")
         assert resp.status_code == 302
         url = resp.headers.get("Location")
         assert "state=" in url
@@ -250,9 +250,9 @@ def test_oauth2_authorize_access_denied():
         "dev",
         client_id="dev",
         client_secret="dev",
-        api_base_url="https://i.b/api",
-        access_token_url="https://i.b/token",
-        authorize_url="https://i.b/authorize",
+        api_base_url="https://resource.test/api",
+        access_token_url="https://provider.test/token",
+        authorize_url="https://provider.test/authorize",
     )
 
     with app.test_request_context(
@@ -266,7 +266,7 @@ def test_oauth2_authorize_access_denied():
 
 def test_oauth2_authorize_via_custom_client():
     class CustomRemoteApp(FlaskOAuth2App):
-        OAUTH_APP_CONFIG = {"authorize_url": "https://i.b/custom"}
+        OAUTH_APP_CONFIG = {"authorize_url": "https://provider.test/custom"}
 
     app = Flask(__name__)
     app.secret_key = "!"
@@ -275,15 +275,15 @@ def test_oauth2_authorize_via_custom_client():
         "dev",
         client_id="dev",
         client_secret="dev",
-        api_base_url="https://i.b/api",
-        access_token_url="https://i.b/token",
+        api_base_url="https://resource.test/api",
+        access_token_url="https://provider.test/token",
         client_cls=CustomRemoteApp,
     )
     with app.test_request_context():
-        resp = client.authorize_redirect("https://b.com/bar")
+        resp = client.authorize_redirect("https://client.test/callback")
         assert resp.status_code == 302
         url = resp.headers.get("Location")
-        assert url.startswith("https://i.b/custom?")
+        assert url.startswith("https://provider.test/custom?")
 
 
 def test_oauth2_authorize_with_metadata():
@@ -294,8 +294,8 @@ def test_oauth2_authorize_with_metadata():
         "dev",
         client_id="dev",
         client_secret="dev",
-        api_base_url="https://i.b/api",
-        access_token_url="https://i.b/token",
+        api_base_url="https://resource.test/api",
+        access_token_url="https://provider.test/token",
     )
     with pytest.raises(RuntimeError):
         client.create_authorization_url(None)
@@ -304,17 +304,17 @@ def test_oauth2_authorize_with_metadata():
         "dev2",
         client_id="dev",
         client_secret="dev",
-        api_base_url="https://i.b/api",
-        access_token_url="https://i.b/token",
-        server_metadata_url="https://i.b/.well-known/openid-configuration",
+        api_base_url="https://resource.test/api",
+        access_token_url="https://provider.test/token",
+        server_metadata_url="https://provider.test/.well-known/openid-configuration",
     )
     with mock.patch("requests.sessions.Session.send") as send:
         send.return_value = mock_send_value(
-            {"authorization_endpoint": "https://i.b/authorize"}
+            {"authorization_endpoint": "https://provider.test/authorize"}
         )
 
         with app.test_request_context():
-            resp = client.authorize_redirect("https://b.com/bar")
+            resp = client.authorize_redirect("https://client.test/callback")
             assert resp.status_code == 302
 
 
@@ -325,14 +325,14 @@ def test_oauth2_authorize_code_challenge():
     client = oauth.register(
         "dev",
         client_id="dev",
-        api_base_url="https://i.b/api",
-        access_token_url="https://i.b/token",
-        authorize_url="https://i.b/authorize",
+        api_base_url="https://resource.test/api",
+        access_token_url="https://provider.test/token",
+        authorize_url="https://provider.test/authorize",
         client_kwargs={"code_challenge_method": "S256"},
     )
 
     with app.test_request_context():
-        resp = client.authorize_redirect("https://b.com/bar")
+        resp = client.authorize_redirect("https://client.test/callback")
         assert resp.status_code == 302
         url = resp.headers.get("Location")
         assert "code_challenge=" in url
@@ -368,15 +368,15 @@ def test_openid_authorize():
     client = oauth.register(
         "dev",
         client_id="dev",
-        api_base_url="https://i.b/api",
-        access_token_url="https://i.b/token",
-        authorize_url="https://i.b/authorize",
+        api_base_url="https://resource.test/api",
+        access_token_url="https://provider.test/token",
+        authorize_url="https://provider.test/authorize",
         client_kwargs={"scope": "openid profile"},
         jwks={"keys": [key]},
     )
 
     with app.test_request_context():
-        resp = client.authorize_redirect("https://b.com/bar")
+        resp = client.authorize_redirect("https://client.test/callback")
         assert resp.status_code == 302
 
         url = resp.headers["Location"]
@@ -395,7 +395,7 @@ def test_openid_authorize():
         {"sub": "123"},
         key,
         alg="HS256",
-        iss="https://i.b",
+        iss="https://provider.test",
         aud="dev",
         exp=3600,
         nonce=query_data["nonce"],
@@ -418,9 +418,9 @@ def test_oauth2_access_token_with_post():
         "dev",
         client_id="dev",
         client_secret="dev",
-        api_base_url="https://i.b/api",
-        access_token_url="https://i.b/token",
-        authorize_url="https://i.b/authorize",
+        api_base_url="https://resource.test/api",
+        access_token_url="https://provider.test/token",
+        authorize_url="https://provider.test/authorize",
     )
     payload = {"code": "a", "state": "b"}
     with app.test_request_context(data=payload, method="POST"):
@@ -442,9 +442,9 @@ def test_access_token_with_fetch_token():
         "dev",
         client_id="dev",
         client_secret="dev",
-        api_base_url="https://i.b/api",
-        access_token_url="https://i.b/token",
-        authorize_url="https://i.b/authorize",
+        api_base_url="https://resource.test/api",
+        access_token_url="https://provider.test/token",
+        authorize_url="https://provider.test/authorize",
     )
 
     def fake_send(sess, req, **kwargs):
@@ -482,14 +482,14 @@ def test_request_with_refresh_token():
         "dev",
         client_id="dev",
         client_secret="dev",
-        api_base_url="https://i.b/api",
-        access_token_url="https://i.b/token",
-        refresh_token_url="https://i.b/token",
-        authorize_url="https://i.b/authorize",
+        api_base_url="https://resource.test/api",
+        access_token_url="https://provider.test/token",
+        refresh_token_url="https://provider.test/token",
+        authorize_url="https://provider.test/authorize",
     )
 
     def fake_send(sess, req, **kwargs):
-        if req.url == "https://i.b/token":
+        if req.url == "https://provider.test/token":
             auth = req.headers["Authorization"]
             assert "Basic" in auth
             resp = mock.MagicMock()
@@ -516,9 +516,9 @@ def test_request_without_token():
         "dev",
         client_id="dev",
         client_secret="dev",
-        api_base_url="https://i.b/api",
-        access_token_url="https://i.b/token",
-        authorize_url="https://i.b/authorize",
+        api_base_url="https://resource.test/api",
+        access_token_url="https://provider.test/token",
+        authorize_url="https://provider.test/authorize",
     )
 
     def fake_send(sess, req, **kwargs):
@@ -534,7 +534,7 @@ def test_request_without_token():
             resp = client.get("/api/user", withhold_token=True)
             assert resp.text == "hi"
             with pytest.raises(OAuthError):
-                client.get("https://i.b/api/user")
+                client.get("https://resource.test/api/user")
 
 
 def test_oauth2_authorize_missing_code():
@@ -545,13 +545,13 @@ def test_oauth2_authorize_missing_code():
         "dev",
         client_id="dev",
         client_secret="dev",
-        api_base_url="https://i.b/api",
-        access_token_url="https://i.b/token",
-        authorize_url="https://i.b/authorize",
+        api_base_url="https://resource.test/api",
+        access_token_url="https://provider.test/token",
+        authorize_url="https://provider.test/authorize",
     )
 
     with app.test_request_context():
-        resp = client.authorize_redirect("https://b.com/bar")
+        resp = client.authorize_redirect("https://client.test/callback")
         state = dict(url_decode(urlparse.urlparse(resp.headers["Location"]).query))[
             "state"
         ]

@@ -49,7 +49,7 @@ def client(user):
         grant_type="authorization_code",
         scope="",
         token_endpoint_auth_method="client_secret_basic",
-        default_redirect_uri="https://a.b",
+        default_redirect_uri="https://client.test",
     )
     client.save()
     yield client
@@ -74,7 +74,7 @@ def test_get_consent_grant_client(factory, server, client):
     with pytest.raises(errors.UnauthorizedClientError):
         server.get_consent_grant(request)
 
-    url = "/authorize?response_type=code&client_id=client-id&scope=profile&state=bar&redirect_uri=https%3A%2F%2Fa.b&response_type=code"
+    url = "/authorize?response_type=code&client_id=client-id&scope=profile&state=bar&redirect_uri=https%3A%2F%2Fclient.test&response_type=code"
     request = factory.get(url)
     with pytest.raises(errors.InvalidRequestError):
         server.get_consent_grant(request)
@@ -87,7 +87,7 @@ def test_get_consent_grant_redirect_uri(factory, server):
     with pytest.raises(errors.InvalidRequestError):
         server.get_consent_grant(request)
 
-    url = base_url + "&redirect_uri=https%3A%2F%2Fa.b"
+    url = base_url + "&redirect_uri=https%3A%2F%2Fclient.test"
     request = factory.get(url)
     grant = server.get_consent_grant(request)
     assert isinstance(grant, grants.AuthorizationCodeGrant)
@@ -174,7 +174,7 @@ def test_insecure_transport_error_with_payload_access(factory, server):
     del os.environ["AUTHLIB_INSECURE_TRANSPORT"]
 
     request = factory.get(
-        "http://idprovider.test:8000/authorize?response_type=code&client_id=client-id"
+        "https://provider.test/authorize?response_type=code&client_id=client-id"
     )
 
     with pytest.raises(errors.InsecureTransportError):

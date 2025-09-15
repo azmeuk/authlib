@@ -20,7 +20,7 @@ authorize_url = "/oauth/authorize?response_type=code&client_id=client-id"
 def client(client, db):
     client.set_client_metadata(
         {
-            "redirect_uris": ["https://a.b"],
+            "redirect_uris": ["https://client.test"],
             "scope": "profile address",
             "token_endpoint_auth_method": "client_secret_basic",
             "response_types": ["code"],
@@ -73,7 +73,7 @@ def test_invalid_authorize(test_client, server):
 def test_unauthorized_client(test_client, client, db):
     client.set_client_metadata(
         {
-            "redirect_uris": ["https://a.b"],
+            "redirect_uris": ["https://client.test"],
             "scope": "profile address",
             "token_endpoint_auth_method": "client_secret_basic",
             "response_types": ["token"],
@@ -110,7 +110,7 @@ def test_invalid_client(test_client):
     )
     resp = json.loads(rv.data)
     assert resp["error"] == "invalid_client"
-    assert resp["error_uri"] == "https://a.b/e#invalid_client"
+    assert resp["error_uri"] == "https://client.test/error#invalid_client"
 
 
 def test_invalid_code(test_client):
@@ -157,7 +157,7 @@ def test_invalid_redirect_uri(test_client):
     resp = json.loads(rv.data)
     assert resp["error"] == "invalid_request"
 
-    uri = authorize_url + "&redirect_uri=https%3A%2F%2Fa.b"
+    uri = authorize_url + "&redirect_uri=https%3A%2F%2Fclient.test"
     rv = test_client.post(uri, data={"user_id": "1"})
     assert "code=" in rv.location
 
@@ -180,7 +180,7 @@ def test_invalid_grant_type(test_client, client, db):
     client.client_secret = ""
     client.set_client_metadata(
         {
-            "redirect_uris": ["https://a.b"],
+            "redirect_uris": ["https://client.test"],
             "scope": "profile address",
             "token_endpoint_auth_method": "none",
             "response_types": ["code"],
@@ -207,7 +207,7 @@ def test_authorize_token_no_refresh_token(app, test_client, client, db, server):
     server.load_config(app.config)
     client.set_client_metadata(
         {
-            "redirect_uris": ["https://a.b"],
+            "redirect_uris": ["https://client.test"],
             "scope": "profile address",
             "token_endpoint_auth_method": "none",
             "response_types": ["code"],
@@ -240,7 +240,7 @@ def test_authorize_token_has_refresh_token(app, test_client, client, db, server)
     server.load_config(app.config)
     client.set_client_metadata(
         {
-            "redirect_uris": ["https://a.b"],
+            "redirect_uris": ["https://client.test"],
             "scope": "profile address",
             "token_endpoint_auth_method": "client_secret_basic",
             "response_types": ["code"],
@@ -275,7 +275,7 @@ def test_authorize_token_has_refresh_token(app, test_client, client, db, server)
 def test_invalid_multiple_request_parameters(test_client):
     url = (
         authorize_url
-        + "&scope=profile&state=bar&redirect_uri=https%3A%2F%2Fa.b&response_type=code"
+        + "&scope=profile&state=bar&redirect_uri=https%3A%2F%2Fclient.test&response_type=code"
     )
     rv = test_client.get(url)
     resp = json.loads(rv.data)
@@ -288,7 +288,7 @@ def test_client_secret_post(app, test_client, client, db, server):
     server.load_config(app.config)
     client.set_client_metadata(
         {
-            "redirect_uris": ["https://a.b"],
+            "redirect_uris": ["https://client.test"],
             "scope": "profile address",
             "token_endpoint_auth_method": "client_secret_post",
             "response_types": ["code"],
@@ -326,7 +326,7 @@ def test_token_generator(app, test_client, client, server):
     server.load_config(app.config)
     client.set_client_metadata(
         {
-            "redirect_uris": ["https://a.b"],
+            "redirect_uris": ["https://client.test"],
             "scope": "profile address",
             "token_endpoint_auth_method": "none",
             "response_types": ["code"],

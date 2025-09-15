@@ -17,12 +17,8 @@ from ..util import mock_text_response
 from ..util import read_key_file
 
 TEST_RSA_OAUTH_SIGNATURE = (
-    "j8WF8PGjojT82aUDd2EL%2Bz7HCoHInFzWUpiEKMCy%2BJ2cYHWcBS7mXlmFDLgAKV0"
-    "P%2FyX4TrpXODYnJ6dRWdfghqwDpi%2FlQmB2jxCiGMdJoYxh3c5zDf26gEbGdP6D7O"
-    "Ssp5HUnzH6sNkmVjuE%2FxoJcHJdc23H6GhOs7VJ2LWNdbhKWP%2FMMlTrcoQDn8lz"
-    "%2Fb24WsJ6ae1txkUzpFOOlLM8aTdNtGL4OtsubOlRhNqnAFq93FyhXg0KjzUyIZzmMX"
-    "9Vx90jTks5QeBGYcLE0Op2iHb2u%2FO%2BEgdwFchgEwE5LgMUyHUI4F3Wglp28yHOAM"
-    "jPkI%2FkWMvpxtMrU3Z3KN31WQ%3D%3D"
+    "Pko%2BFb4T1XGDE5DlLjuEMthVXjczqGi8qyfQ%2FSE405bBLEywint1tYNGN1me8h"
+    "JoXZMqyXy%2F%2FAzJ0ViRYRc7rDTaTYyjB%2Fct%2FFt8f4lb3e9LfGhgkwih%2FsH2w%3D%3D"
 )
 
 
@@ -44,16 +40,16 @@ def test_signature_types():
 
     header = OAuth1Session("foo")
     header.send = verify_signature(lambda r: r.headers["Authorization"])
-    header.post("https://i.b")
+    header.post("https://provider.test")
 
     query = OAuth1Session("foo", signature_type=SIGNATURE_TYPE_QUERY)
     query.send = verify_signature(lambda r: r.url)
-    query.post("https://i.b")
+    query.post("https://provider.test")
 
     body = OAuth1Session("foo", signature_type=SIGNATURE_TYPE_BODY)
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
     body.send = verify_signature(lambda r: r.body)
-    body.post("https://i.b", headers=headers, data="")
+    body.post("https://provider.test", headers=headers, data="")
 
 
 @mock.patch("authlib.oauth1.rfc5849.client_auth.generate_timestamp")
@@ -69,12 +65,12 @@ def test_signature_methods(generate_nonce, generate_timestamp):
             'oauth_version="1.0"',
             'oauth_signature_method="HMAC-SHA1"',
             'oauth_consumer_key="foo"',
-            'oauth_signature="h2sRqLArjhlc5p3FTkuNogVHlKE%3D"',
+            'oauth_signature="GuqiSr5%2FHajrrmc%2FFprUV4cCGbw%3D"',
         ]
     )
     auth = OAuth1Session("foo")
     auth.send = verify_signature(signature)
-    auth.post("https://i.b")
+    auth.post("https://provider.test")
 
     signature = (
         "OAuth "
@@ -84,7 +80,7 @@ def test_signature_methods(generate_nonce, generate_timestamp):
     )
     auth = OAuth1Session("foo", signature_method=SIGNATURE_PLAINTEXT)
     auth.send = verify_signature(signature)
-    auth.post("https://i.b")
+    auth.post("https://provider.test")
 
     signature = (
         "OAuth "
@@ -96,7 +92,7 @@ def test_signature_methods(generate_nonce, generate_timestamp):
     rsa_key = read_key_file("rsa_private.pem")
     auth = OAuth1Session("foo", signature_method=SIGNATURE_RSA_SHA1, rsa_key=rsa_key)
     auth.send = verify_signature(signature)
-    auth.post("https://i.b")
+    auth.post("https://provider.test")
 
 
 @mock.patch("authlib.oauth1.rfc5849.client_auth.generate_timestamp")
@@ -113,7 +109,7 @@ def test_binary_upload(generate_nonce, generate_timestamp):
 
     auth = OAuth1Session("foo", force_include_body=True)
     auth.send = fake_send
-    auth.post("https://i.b", headers=headers, files=[("fake", fake_xml)])
+    auth.post("https://provider.test", headers=headers, files=[("fake", fake_xml)])
 
 
 @mock.patch("authlib.oauth1.rfc5849.client_auth.generate_timestamp")
@@ -124,17 +120,17 @@ def test_nonascii(generate_nonce, generate_timestamp):
     signature = (
         'OAuth oauth_nonce="abc", oauth_timestamp="123", oauth_version="1.0", '
         'oauth_signature_method="HMAC-SHA1", oauth_consumer_key="foo", '
-        'oauth_signature="W0haoue5IZAZoaJiYCtfqwMf8x8%3D"'
+        'oauth_signature="USkqQvV76SCKBewYI9cut6FfYcI%3D"'
     )
     auth = OAuth1Session("foo")
     auth.send = verify_signature(signature)
-    auth.post("https://i.b?cjk=%E5%95%A6%E5%95%A6")
+    auth.post("https://provider.test?cjk=%E5%95%A6%E5%95%A6")
 
 
 def test_redirect_uri():
     sess = OAuth1Session("foo")
     assert sess.redirect_uri is None
-    url = "https://i.b"
+    url = "https://provider.test"
     sess.redirect_uri = url
     assert sess.redirect_uri == url
 
@@ -160,18 +156,18 @@ def test_set_token():
 
 def test_create_authorization_url():
     auth = OAuth1Session("foo")
-    url = "https://example.comm/authorize"
+    url = "https://provider.test/authorize"
     token = "asluif023sf"
     auth_url = auth.create_authorization_url(url, request_token=token)
     assert auth_url == url + "?oauth_token=" + token
-    redirect_uri = "https://c.b"
+    redirect_uri = "https://client.test/callback"
     auth = OAuth1Session("foo", redirect_uri=redirect_uri)
     auth_url = auth.create_authorization_url(url, request_token=token)
     assert escape(redirect_uri) in auth_url
 
 
 def test_parse_response_url():
-    url = "https://i.b/callback?oauth_token=foo&oauth_verifier=bar"
+    url = "https://provider.test/callback?oauth_token=foo&oauth_verifier=bar"
     auth = OAuth1Session("foo")
     resp = auth.parse_authorization_response(url)
     assert resp["oauth_token"] == "foo"
@@ -184,13 +180,13 @@ def test_parse_response_url():
 def test_fetch_request_token():
     auth = OAuth1Session("foo", realm="A")
     auth.send = mock_text_response("oauth_token=foo")
-    resp = auth.fetch_request_token("https://example.com/token")
+    resp = auth.fetch_request_token("https://provider.test/token")
     assert resp["oauth_token"] == "foo"
     for k, v in resp.items():
         assert isinstance(k, str)
         assert isinstance(v, str)
 
-    resp = auth.fetch_request_token("https://example.com/token")
+    resp = auth.fetch_request_token("https://provider.test/token")
     assert resp["oauth_token"] == "foo"
 
 
@@ -198,7 +194,7 @@ def test_fetch_request_token_with_optional_arguments():
     auth = OAuth1Session("foo")
     auth.send = mock_text_response("oauth_token=foo")
     resp = auth.fetch_request_token(
-        "https://example.com/token", verify=False, stream=True
+        "https://provider.test/token", verify=False, stream=True
     )
     assert resp["oauth_token"] == "foo"
     for k, v in resp.items():
@@ -209,7 +205,7 @@ def test_fetch_request_token_with_optional_arguments():
 def test_fetch_access_token():
     auth = OAuth1Session("foo", verifier="bar")
     auth.send = mock_text_response("oauth_token=foo")
-    resp = auth.fetch_access_token("https://example.com/token")
+    resp = auth.fetch_access_token("https://provider.test/token")
     assert resp["oauth_token"] == "foo"
     for k, v in resp.items():
         assert isinstance(k, str)
@@ -217,12 +213,12 @@ def test_fetch_access_token():
 
     auth = OAuth1Session("foo", verifier="bar")
     auth.send = mock_text_response('{"oauth_token":"foo"}')
-    resp = auth.fetch_access_token("https://example.com/token")
+    resp = auth.fetch_access_token("https://provider.test/token")
     assert resp["oauth_token"] == "foo"
 
     auth = OAuth1Session("foo")
     auth.send = mock_text_response("oauth_token=foo")
-    resp = auth.fetch_access_token("https://example.com/token", verifier="bar")
+    resp = auth.fetch_access_token("https://provider.test/token", verifier="bar")
     assert resp["oauth_token"] == "foo"
 
 
@@ -230,7 +226,7 @@ def test_fetch_access_token_with_optional_arguments():
     auth = OAuth1Session("foo", verifier="bar")
     auth.send = mock_text_response("oauth_token=foo")
     resp = auth.fetch_access_token(
-        "https://example.com/token", verify=False, stream=True
+        "https://provider.test/token", verify=False, stream=True
     )
     assert resp["oauth_token"] == "foo"
     for k, v in resp.items():
@@ -244,19 +240,19 @@ def _test_fetch_access_token_raises_error(session):
     """
     session.send = mock_text_response("oauth_token=foo")
     with pytest.raises(OAuthError, match="missing_verifier"):
-        session.fetch_access_token("https://example.com/token")
+        session.fetch_access_token("https://provider.test/token")
 
 
 def test_fetch_token_invalid_response():
     auth = OAuth1Session("foo")
     auth.send = mock_text_response("not valid urlencoded response!")
     with pytest.raises(ValueError):
-        auth.fetch_request_token("https://example.com/token")
+        auth.fetch_request_token("https://provider.test/token")
 
     for code in (400, 401, 403):
         auth.send = mock_text_response("valid=response", code)
         with pytest.raises(OAuthError, match="fetch_token_denied"):
-            auth.fetch_request_token("https://example.com/token")
+            auth.fetch_request_token("https://provider.test/token")
 
 
 def test_fetch_access_token_missing_verifier():
@@ -272,7 +268,17 @@ def test_fetch_access_token_has_verifier_is_none():
 def verify_signature(signature):
     def fake_send(r, **kwargs):
         auth_header = to_unicode(r.headers["Authorization"])
-        assert auth_header == signature
+        # RSA signatures are non-deterministic, so we only check the prefix for RSA-SHA1
+        if 'oauth_signature_method="RSA-SHA1"' in signature:
+            signature_prefix = (
+                signature.split('oauth_signature="')[0] + 'oauth_signature="'
+            )
+            auth_prefix = (
+                auth_header.split('oauth_signature="')[0] + 'oauth_signature="'
+            )
+            assert auth_prefix == signature_prefix
+        else:
+            assert auth_header == signature
         resp = mock.MagicMock(spec=requests.Response)
         resp.cookies = []
         return resp

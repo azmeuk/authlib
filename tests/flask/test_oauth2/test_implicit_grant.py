@@ -15,7 +15,7 @@ def server(server):
 def client(client, db):
     client.set_client_metadata(
         {
-            "redirect_uris": ["http://localhost/authorized"],
+            "redirect_uris": ["https://client.test/authorized"],
             "scope": "profile",
             "response_types": ["token"],
             "grant_types": ["implicit"],
@@ -36,7 +36,7 @@ def test_confidential_client(test_client, db, client):
     client.client_secret = "client-secret"
     client.set_client_metadata(
         {
-            "redirect_uris": ["http://localhost/authorized"],
+            "redirect_uris": ["https://client.test/authorized"],
             "scope": "profile",
             "response_types": ["token"],
             "grant_types": ["implicit"],
@@ -53,7 +53,7 @@ def test_confidential_client(test_client, db, client):
 def test_unsupported_client(test_client, db, client):
     client.set_client_metadata(
         {
-            "redirect_uris": ["http://localhost/authorized"],
+            "redirect_uris": ["https://client.test/authorized"],
             "scope": "profile",
             "response_types": ["code"],
             "grant_types": ["implicit"],

@@ -733,7 +733,7 @@ def test_ecdh_es_jwe_with_json_serialization_when_kid_is_not_specified():
         "apv": "Qm9iIGFuZCBDaGFybGll",
     }
 
-    unprotected = {"jku": "https://alice.example.com/keys.jwks"}
+    unprotected = {"jku": "https://provider.test/jwks"}
 
     recipients = [
         {"header": {"kid": "bob-key-2"}},
@@ -807,7 +807,7 @@ def test_ecdh_es_jwe_with_json_serialization_when_kid_is_specified():
         "apv": "Qm9iIGFuZCBDaGFybGll",
     }
 
-    unprotected = {"jku": "https://alice.example.com/keys.jwks"}
+    unprotected = {"jku": "https://provider.test/jwks"}
 
     recipients = [
         {"header": {"kid": "bob-key-2"}},
@@ -871,7 +871,7 @@ def test_ecdh_es_jwe_with_json_serialization_for_single_recipient():
         "apv": "Qm9i",
     }
 
-    unprotected = {"jku": "https://alice.example.com/keys.jwks"}
+    unprotected = {"jku": "https://provider.test/jwks"}
 
     recipients = [{"header": {"kid": "bob-key-2"}}]
 
@@ -967,7 +967,7 @@ def test_ecdh_es_decryption_fails_if_key_matches_to_no_recipient():
         "apv": "Qm9i",
     }
 
-    unprotected = {"jku": "https://alice.example.com/keys.jwks"}
+    unprotected = {"jku": "https://provider.test/jwks"}
 
     recipients = [{"header": {"kid": "bob-key-2"}}]
 
@@ -1024,7 +1024,7 @@ def test_decryption_with_json_serialization_succeeds_while_encrypted_key_for_ano
         + "UVd4cFkyVSIsImFwdiI6IlFtOWlJR0Z1WkNCRGFHRnliR2xsIiwiZXBrIjp7Imt0eSI6Ik9L"
         + "UCIsImNydiI6IlgyNTUxOSIsIngiOiJrOW9mX2NwQWFqeTBwb1c1Z2FpeFhHczluSGt3ZzFB"
         + "RnFVQUZhMzlkeUJjIn19",
-        "unprotected": {"jku": "https://alice.example.com/keys.jwks"},
+        "unprotected": {"jku": "https://provider.test/jwks"},
         "recipients": [
             {
                 "header": {"kid": "Bob's key"},
@@ -1065,7 +1065,7 @@ def test_decryption_with_json_serialization_succeeds_while_encrypted_key_for_ano
     }
 
     assert rv_at_charlie["header"]["unprotected"] == {
-        "jku": "https://alice.example.com/keys.jwks"
+        "jku": "https://provider.test/jwks"
     }
 
     assert rv_at_charlie["header"]["recipients"] == [
@@ -1112,7 +1112,7 @@ def test_decryption_with_json_serialization_fails_if_encrypted_key_for_this_reci
         + "UVd4cFkyVSIsImFwdiI6IlFtOWlJR0Z1WkNCRGFHRnliR2xsIiwiZXBrIjp7Imt0eSI6Ik9L"
         + "UCIsImNydiI6IlgyNTUxOSIsIngiOiJrOW9mX2NwQWFqeTBwb1c1Z2FpeFhHczluSGt3ZzFB"
         + "RnFVQUZhMzlkeUJjIn19",
-        "unprotected": {"jku": "https://alice.example.com/keys.jwks"},
+        "unprotected": {"jku": "https://provider.test/jwks"},
         "recipients": [
             {
                 "header": {"kid": "Bob's key"},
@@ -1194,7 +1194,7 @@ def test_decryption_of_message_to_multiple_recipients_by_matching_key():
         {
             "protected": "eyJhbGciOiJFQ0RILTFQVStBMTI4S1ciLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwiYXB1IjoiUVd4cFkyVSIsImFwdiI6IlFtOWlJR0Z1WkNCRGFHRnliR2xsIiwiZXBrIjp7Imt0eSI6Ik9LUCIsImNydiI6IlgyNTUxOSIsIngiOiJrOW9mX2NwQWFqeTBwb1c1Z2FpeFhHczluSGt3ZzFBRnFVQUZhMzlkeUJjIn19",
             "unprotected": {
-                "jku": "https://alice.example.com/keys.jwks"
+                "jku": "https://provider.test/jwks"
             },
             "recipients": [
                 {
@@ -1244,7 +1244,7 @@ def test_decryption_of_message_to_multiple_recipients_by_matching_key():
         },
     }
 
-    assert rv["header"]["unprotected"] == {"jku": "https://alice.example.com/keys.jwks"}
+    assert rv["header"]["unprotected"] == {"jku": "https://provider.test/jwks"}
 
     assert rv["header"]["recipients"] == [
         {
@@ -1294,7 +1294,7 @@ def test_decryption_of_json_string():
         {
             "protected": "eyJhbGciOiJFQ0RILTFQVStBMTI4S1ciLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwiYXB1IjoiUVd4cFkyVSIsImFwdiI6IlFtOWlJR0Z1WkNCRGFHRnliR2xsIiwiZXBrIjp7Imt0eSI6Ik9LUCIsImNydiI6IlgyNTUxOSIsIngiOiJrOW9mX2NwQWFqeTBwb1c1Z2FpeFhHczluSGt3ZzFBRnFVQUZhMzlkeUJjIn19",
             "unprotected": {
-                "jku": "https://alice.example.com/keys.jwks"
+                "jku": "https://provider.test/jwks"
             },
             "recipients": [
                 {
@@ -1333,9 +1333,7 @@ def test_decryption_of_json_string():
         },
     }
 
-    assert rv_at_bob["header"]["unprotected"] == {
-        "jku": "https://alice.example.com/keys.jwks"
-    }
+    assert rv_at_bob["header"]["unprotected"] == {"jku": "https://provider.test/jwks"}
 
     assert rv_at_bob["header"]["recipients"] == [
         {"header": {"kid": "bob-key-2"}},
@@ -1367,7 +1365,7 @@ def test_decryption_of_json_string():
     }
 
     assert rv_at_charlie["header"]["unprotected"] == {
-        "jku": "https://alice.example.com/keys.jwks"
+        "jku": "https://provider.test/jwks"
     }
 
     assert rv_at_charlie["header"]["recipients"] == [
@@ -1383,7 +1381,7 @@ def test_parse_json():
         {
             "protected": "eyJhbGciOiJFQ0RILTFQVStBMTI4S1ciLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwiYXB1IjoiUVd4cFkyVSIsImFwdiI6IlFtOWlJR0Z1WkNCRGFHRnliR2xsIiwiZXBrIjp7Imt0eSI6Ik9LUCIsImNydiI6IlgyNTUxOSIsIngiOiJrOW9mX2NwQWFqeTBwb1c1Z2FpeFhHczluSGt3ZzFBRnFVQUZhMzlkeUJjIn19",
             "unprotected": {
-                "jku": "https://alice.example.com/keys.jwks"
+                "jku": "https://provider.test/jwks"
             },
             "recipients": [
                 {
@@ -1408,7 +1406,7 @@ def test_parse_json():
 
     assert parsed_msg == {
         "protected": "eyJhbGciOiJFQ0RILTFQVStBMTI4S1ciLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwiYXB1IjoiUVd4cFkyVSIsImFwdiI6IlFtOWlJR0Z1WkNCRGFHRnliR2xsIiwiZXBrIjp7Imt0eSI6Ik9LUCIsImNydiI6IlgyNTUxOSIsIngiOiJrOW9mX2NwQWFqeTBwb1c1Z2FpeFhHczluSGt3ZzFBRnFVQUZhMzlkeUJjIn19",
-        "unprotected": {"jku": "https://alice.example.com/keys.jwks"},
+        "unprotected": {"jku": "https://provider.test/jwks"},
         "recipients": [
             {
                 "header": {"kid": "bob-key-2"},
@@ -1430,7 +1428,7 @@ def test_parse_json_fails_if_json_msg_is_invalid():
         {
             "protected": "eyJhbGciOiJFQ0RILTFQVStBMTI4S1ciLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwiYXB1IjoiUVd4cFkyVSIsImFwdiI6IlFtOWlJR0Z1WkNCRGFHRnliR2xsIiwiZXBrIjp7Imt0eSI6Ik9LUCIsImNydiI6IlgyNTUxOSIsIngiOiJrOW9mX2NwQWFqeTBwb1c1Z2FpeFhHczluSGt3ZzFBRnFVQUZhMzlkeUJjIn19",
             "unprotected": {
-                "jku": "https://alice.example.com/keys.jwks"
+                "jku": "https://provider.test/jwks"
             },
             "recipients": [
                 {
@@ -1480,7 +1478,7 @@ def test_decryption_fails_if_ciphertext_is_invalid():
         + "UVd4cFkyVSIsImFwdiI6IlFtOWlJR0Z1WkNCRGFHRnliR2xsIiwiZXBrIjp7Imt0eSI6Ik9L"
         + "UCIsImNydiI6IlgyNTUxOSIsIngiOiJrOW9mX2NwQWFqeTBwb1c1Z2FpeFhHczluSGt3ZzFB"
         + "RnFVQUZhMzlkeUJjIn19",
-        "unprotected": {"jku": "https://alice.example.com/keys.jwks"},
+        "unprotected": {"jku": "https://provider.test/jwks"},
         "recipients": [
             {
                 "header": {"kid": "bob-key-2"},

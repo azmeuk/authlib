@@ -21,13 +21,13 @@ def test_refresh_token(token):
     def verifier(r, **kwargs):
         resp = mock.MagicMock()
         resp.status_code = 200
-        if r.url == "https://i.b/token":
+        if r.url == "https://provider.test/token":
             assert "assertion=" in r.body
             resp.json = lambda: token
         return resp
 
     sess = AssertionSession(
-        "https://i.b/token",
+        "https://provider.test/token",
         issuer="foo",
         subject="foo",
         audience="foo",
@@ -35,12 +35,12 @@ def test_refresh_token(token):
         key="secret",
     )
     sess.send = verifier
-    sess.get("https://i.b")
+    sess.get("https://provider.test")
 
     # trigger more case
     now = int(time.time())
     sess = AssertionSession(
-        "https://i.b/token",
+        "https://provider.test/token",
         issuer="foo",
         subject=None,
         audience="foo",
@@ -52,14 +52,14 @@ def test_refresh_token(token):
         claims={"test_mode": "true"},
     )
     sess.send = verifier
-    sess.get("https://i.b")
+    sess.get("https://provider.test")
     # trigger for branch test case
-    sess.get("https://i.b")
+    sess.get("https://provider.test")
 
 
 def test_without_alg():
     sess = AssertionSession(
-        "https://i.b/token",
+        "https://provider.test/token",
         grant_type=AssertionSession.JWT_BEARER_GRANT_TYPE,
         issuer="foo",
         subject="foo",
@@ -67,4 +67,4 @@ def test_without_alg():
         key="secret",
     )
     with pytest.raises(ValueError):
-        sess.get("https://i.b")
+        sess.get("https://provider.test")

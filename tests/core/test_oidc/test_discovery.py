@@ -7,21 +7,24 @@ WELL_KNOWN_URL = "/.well-known/openid-configuration"
 
 
 def test_well_known_no_suffix_issuer():
-    assert get_well_known_url("https://authlib.org") == WELL_KNOWN_URL
-    assert get_well_known_url("https://authlib.org/") == WELL_KNOWN_URL
+    assert get_well_known_url("https://provider.test") == WELL_KNOWN_URL
+    assert get_well_known_url("https://provider.test/") == WELL_KNOWN_URL
 
 
 def test_well_known_with_suffix_issuer():
     assert (
-        get_well_known_url("https://authlib.org/issuer1") == "/issuer1" + WELL_KNOWN_URL
+        get_well_known_url("https://provider.test/issuer1")
+        == "/issuer1" + WELL_KNOWN_URL
     )
-    assert get_well_known_url("https://authlib.org/a/b/c") == "/a/b/c" + WELL_KNOWN_URL
+    assert (
+        get_well_known_url("https://provider.test/a/b/c") == "/a/b/c" + WELL_KNOWN_URL
+    )
 
 
 def test_well_known_with_external():
     assert (
-        get_well_known_url("https://authlib.org", external=True)
-        == "https://authlib.org" + WELL_KNOWN_URL
+        get_well_known_url("https://provider.test", external=True)
+        == "https://provider.test" + WELL_KNOWN_URL
     )
 
 
@@ -31,11 +34,11 @@ def test_validate_jwks_uri():
     with pytest.raises(ValueError, match='"jwks_uri" is required'):
         metadata.validate_jwks_uri()
 
-    metadata = OpenIDProviderMetadata({"jwks_uri": "http://authlib.org/jwks.json"})
+    metadata = OpenIDProviderMetadata({"jwks_uri": "http://provider.test/jwks.json"})
     with pytest.raises(ValueError, match="https"):
         metadata.validate_jwks_uri()
 
-    metadata = OpenIDProviderMetadata({"jwks_uri": "https://authlib.org/jwks.json"})
+    metadata = OpenIDProviderMetadata({"jwks_uri": "https://provider.test/jwks.json"})
     metadata.validate_jwks_uri()
 
 

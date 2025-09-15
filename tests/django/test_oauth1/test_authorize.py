@@ -57,7 +57,7 @@ def test_authorize_denied(factory, plaintext_server):
     resp = server.create_authorization_response(request)
     assert resp.status_code == 302
     assert "access_denied" in resp["Location"]
-    assert "https://a.b" in resp["Location"]
+    assert "https://client.test" in resp["Location"]
 
     # case 2
     request = factory.post(
@@ -104,7 +104,7 @@ def test_authorize_granted(factory, plaintext_server):
     assert resp.status_code == 302
 
     assert "oauth_verifier" in resp["Location"]
-    assert "https://a.b" in resp["Location"]
+    assert "https://client.test" in resp["Location"]
 
     # case 2
     request = factory.post(

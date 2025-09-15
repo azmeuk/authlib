@@ -28,7 +28,7 @@ def client(db, user):
         user_id=user.id,
         client_id="client",
         client_secret="secret",
-        default_redirect_uri="https://a.b",
+        default_redirect_uri="https://client.test",
     )
     db.session.add(client)
     db.session.commit()

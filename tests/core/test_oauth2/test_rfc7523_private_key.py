@@ -19,9 +19,11 @@ def test_nothing_set():
 
 
 def test_endpoint_set():
-    jwt_signer = PrivateKeyJWT(token_endpoint="https://example.com/oauth/access_token")
+    jwt_signer = PrivateKeyJWT(
+        token_endpoint="https://provider.test/oauth/access_token"
+    )
 
-    assert jwt_signer.token_endpoint == "https://example.com/oauth/access_token"
+    assert jwt_signer.token_endpoint == "https://provider.test/oauth/access_token"
     assert jwt_signer.claims is None
     assert jwt_signer.headers is None
     assert jwt_signer.alg == "RS256"
@@ -56,13 +58,13 @@ def test_headers_set():
 
 def test_all_set():
     jwt_signer = PrivateKeyJWT(
-        token_endpoint="https://example.com/oauth/access_token",
+        token_endpoint="https://provider.test/oauth/access_token",
         claims={"foo1a": "bar1a"},
         headers={"foo1b": "bar1b"},
         alg="RS512",
     )
 
-    assert jwt_signer.token_endpoint == "https://example.com/oauth/access_token"
+    assert jwt_signer.token_endpoint == "https://provider.test/oauth/access_token"
     assert jwt_signer.claims == {"foo1a": "bar1a"}
     assert jwt_signer.headers == {"foo1b": "bar1b"}
     assert jwt_signer.alg == "RS512"
@@ -95,7 +97,7 @@ def test_sign_nothing_set():
         "client_id_1",
         public_key,
         private_key,
-        "https://example.com/oauth/access_token",
+        "https://provider.test/oauth/access_token",
     )
 
     assert iat >= pre_sign_time
@@ -105,7 +107,7 @@ def test_sign_nothing_set():
 
     assert {
         "iss": "client_id_1",
-        "aud": "https://example.com/oauth/access_token",
+        "aud": "https://provider.test/oauth/access_token",
         "sub": "client_id_1",
     } == decoded
     assert {"alg": "RS256", "typ": "JWT"} == decoded.header
@@ -119,7 +121,7 @@ def test_sign_custom_jti():
         "client_id_1",
         public_key,
         private_key,
-        "https://example.com/oauth/access_token",
+        "https://provider.test/oauth/access_token",
     )
 
     assert iat >= pre_sign_time
@@ -129,7 +131,7 @@ def test_sign_custom_jti():
 
     assert decoded == {
         "iss": "client_id_1",
-        "aud": "https://example.com/oauth/access_token",
+        "aud": "https://provider.test/oauth/access_token",
         "sub": "client_id_1",
     }
     assert {"alg": "RS256", "typ": "JWT"} == decoded.header
@@ -143,7 +145,7 @@ def test_sign_with_additional_header():
         "client_id_1",
         public_key,
         private_key,
-        "https://example.com/oauth/access_token",
+        "https://provider.test/oauth/access_token",
     )
 
     assert iat >= pre_sign_time
@@ -153,7 +155,7 @@ def test_sign_with_additional_header():
 
     assert decoded == {
         "iss": "client_id_1",
-        "aud": "https://example.com/oauth/access_token",
+        "aud": "https://provider.test/oauth/access_token",
         "sub": "client_id_1",
     }
     assert {"alg": "RS256", "typ": "JWT", "kid": "custom_kid"} == decoded.header
@@ -161,7 +163,7 @@ def test_sign_with_additional_header():
 
 def test_sign_with_additional_headers():
     jwt_signer = PrivateKeyJWT(
-        headers={"kid": "custom_kid", "jku": "https://example.com/oauth/jwks"}
+        headers={"kid": "custom_kid", "jku": "https://provider.test/oauth/jwks"}
     )
 
     decoded, pre_sign_time, iat, exp, jti = sign_and_decode(
@@ -169,7 +171,7 @@ def test_sign_with_additional_headers():
         "client_id_1",
         public_key,
         private_key,
-        "https://example.com/oauth/access_token",
+        "https://provider.test/oauth/access_token",
     )
 
     assert iat >= pre_sign_time
@@ -179,14 +181,14 @@ def test_sign_with_additional_headers():
 
     assert decoded == {
         "iss": "client_id_1",
-        "aud": "https://example.com/oauth/access_token",
+        "aud": "https://provider.test/oauth/access_token",
         "sub": "client_id_1",
     }
     assert {
         "alg": "RS256",
         "typ": "JWT",
         "kid": "custom_kid",
-        "jku": "https://example.com/oauth/jwks",
+        "jku": "https://provider.test/oauth/jwks",
     } == decoded.header
 
 
@@ -198,7 +200,7 @@ def test_sign_with_additional_claim():
         "client_id_1",
         public_key,
         private_key,
-        "https://example.com/oauth/access_token",
+        "https://provider.test/oauth/access_token",
     )
 
     assert iat >= pre_sign_time
@@ -208,7 +210,7 @@ def test_sign_with_additional_claim():
 
     assert decoded == {
         "iss": "client_id_1",
-        "aud": "https://example.com/oauth/access_token",
+        "aud": "https://provider.test/oauth/access_token",
         "sub": "client_id_1",
         "name": "Foo",
     }
@@ -223,7 +225,7 @@ def test_sign_with_additional_claims():
         "client_id_1",
         public_key,
         private_key,
-        "https://example.com/oauth/access_token",
+        "https://provider.test/oauth/access_token",
     )
 
     assert iat >= pre_sign_time
@@ -233,7 +235,7 @@ def test_sign_with_additional_claims():
 
     assert decoded == {
         "iss": "client_id_1",
-        "aud": "https://example.com/oauth/access_token",
+        "aud": "https://provider.test/oauth/access_token",
         "sub": "client_id_1",
         "name": "Foo",
         "role": "bar",
