@@ -238,7 +238,7 @@ def test_update_invalid_request(test_client, token):
         "/configure_client/client-id",
         json={
             "client_id": "client-id",
-            "registration_client_uri": "https://foobar.com",
+            "registration_client_uri": "https://client.test",
         },
         headers=headers,
     )

@@ -7,31 +7,34 @@ WELL_KNOWN_URL = "/.well-known/oauth-authorization-server"
 
 
 def test_well_know_no_suffix_issuer():
-    assert get_well_known_url("https://authlib.org") == WELL_KNOWN_URL
-    assert get_well_known_url("https://authlib.org/") == WELL_KNOWN_URL
+    assert get_well_known_url("https://provider.test") == WELL_KNOWN_URL
+    assert get_well_known_url("https://provider.test/") == WELL_KNOWN_URL
 
 
 def test_well_know_with_suffix_issuer():
     assert (
-        get_well_known_url("https://authlib.org/issuer1") == WELL_KNOWN_URL + "/issuer1"
+        get_well_known_url("https://provider.test/issuer1")
+        == WELL_KNOWN_URL + "/issuer1"
     )
-    assert get_well_known_url("https://authlib.org/a/b/c") == WELL_KNOWN_URL + "/a/b/c"
+    assert (
+        get_well_known_url("https://provider.test/a/b/c") == WELL_KNOWN_URL + "/a/b/c"
+    )
 
 
 def test_well_know_with_external():
     assert (
-        get_well_known_url("https://authlib.org", external=True)
-        == "https://authlib.org" + WELL_KNOWN_URL
+        get_well_known_url("https://provider.test", external=True)
+        == "https://provider.test" + WELL_KNOWN_URL
     )
 
 
 def test_well_know_with_changed_suffix():
-    url = get_well_known_url("https://authlib.org", suffix="openid-configuration")
+    url = get_well_known_url("https://provider.test", suffix="openid-configuration")
     assert url == "/.well-known/openid-configuration"
     url = get_well_known_url(
-        "https://authlib.org", external=True, suffix="openid-configuration"
+        "https://provider.test", external=True, suffix="openid-configuration"
     )
-    assert url == "https://authlib.org/.well-known/openid-configuration"
+    assert url == "https://provider.test/.well-known/openid-configuration"
 
 
 def test_validate_issuer():
@@ -41,35 +44,35 @@ def test_validate_issuer():
         metadata.validate()
 
     #: https
-    metadata = AuthorizationServerMetadata({"issuer": "http://authlib.org/"})
+    metadata = AuthorizationServerMetadata({"issuer": "http://provider.test/"})
     with pytest.raises(ValueError, match="https"):
         metadata.validate_issuer()
 
     #: query
-    metadata = AuthorizationServerMetadata({"issuer": "https://authlib.org/?a=b"})
+    metadata = AuthorizationServerMetadata({"issuer": "https://provider.test/?a=b"})
     with pytest.raises(ValueError, match="query"):
         metadata.validate_issuer()
 
     #: fragment
-    metadata = AuthorizationServerMetadata({"issuer": "https://authlib.org/#a=b"})
+    metadata = AuthorizationServerMetadata({"issuer": "https://provider.test/#a=b"})
     with pytest.raises(ValueError, match="fragment"):
         metadata.validate_issuer()
 
-    metadata = AuthorizationServerMetadata({"issuer": "https://authlib.org/"})
+    metadata = AuthorizationServerMetadata({"issuer": "https://provider.test/"})
     metadata.validate_issuer()
 
 
 def test_validate_authorization_endpoint():
     # https
     metadata = AuthorizationServerMetadata(
-        {"authorization_endpoint": "http://authlib.org/"}
+        {"authorization_endpoint": "http://provider.test/"}
     )
     with pytest.raises(ValueError, match="https"):
         metadata.validate_authorization_endpoint()
 
     # valid https
     metadata = AuthorizationServerMetadata(
-        {"authorization_endpoint": "https://authlib.org/"}
+        {"authorization_endpoint": "https://provider.test/"}
     )
     metadata.validate_authorization_endpoint()
 
@@ -94,12 +97,12 @@ def test_validate_token_endpoint():
         metadata.validate_token_endpoint()
 
     # https
-    metadata = AuthorizationServerMetadata({"token_endpoint": "http://authlib.org/"})
+    metadata = AuthorizationServerMetadata({"token_endpoint": "http://provider.test/"})
     with pytest.raises(ValueError, match="https"):
         metadata.validate_token_endpoint()
 
     # valid
-    metadata = AuthorizationServerMetadata({"token_endpoint": "https://authlib.org/"})
+    metadata = AuthorizationServerMetadata({"token_endpoint": "https://provider.test/"})
     metadata.validate_token_endpoint()
 
 
@@ -108,12 +111,14 @@ def test_validate_jwks_uri():
     metadata = AuthorizationServerMetadata()
     metadata.validate_jwks_uri()
 
-    metadata = AuthorizationServerMetadata({"jwks_uri": "http://authlib.org/jwks.json"})
+    metadata = AuthorizationServerMetadata(
+        {"jwks_uri": "http://provider.test/jwks.json"}
+    )
     with pytest.raises(ValueError, match="https"):
         metadata.validate_jwks_uri()
 
     metadata = AuthorizationServerMetadata(
-        {"jwks_uri": "https://authlib.org/jwks.json"}
+        {"jwks_uri": "https://provider.test/jwks.json"}
     )
     metadata.validate_jwks_uri()
 
@@ -123,13 +128,13 @@ def test_validate_registration_endpoint():
     metadata.validate_registration_endpoint()
 
     metadata = AuthorizationServerMetadata(
-        {"registration_endpoint": "http://authlib.org/"}
+        {"registration_endpoint": "http://provider.test/"}
     )
     with pytest.raises(ValueError, match="https"):
         metadata.validate_registration_endpoint()
 
     metadata = AuthorizationServerMetadata(
-        {"registration_endpoint": "https://authlib.org/"}
+        {"registration_endpoint": "https://provider.test/"}
     )
     metadata.validate_registration_endpoint()
 
@@ -245,7 +250,7 @@ def test_validate_service_documentation():
         metadata.validate_service_documentation()
 
     metadata = AuthorizationServerMetadata(
-        {"service_documentation": "https://authlib.org/"}
+        {"service_documentation": "https://provider.test/"}
     )
     metadata.validate_service_documentation()
 
@@ -272,7 +277,7 @@ def test_validate_op_policy_uri():
     with pytest.raises(ValueError, match="MUST be a URL"):
         metadata.validate_op_policy_uri()
 
-    metadata = AuthorizationServerMetadata({"op_policy_uri": "https://authlib.org/"})
+    metadata = AuthorizationServerMetadata({"op_policy_uri": "https://provider.test/"})
     metadata.validate_op_policy_uri()
 
 
@@ -284,7 +289,7 @@ def test_validate_op_tos_uri():
     with pytest.raises(ValueError, match="MUST be a URL"):
         metadata.validate_op_tos_uri()
 
-    metadata = AuthorizationServerMetadata({"op_tos_uri": "https://authlib.org/"})
+    metadata = AuthorizationServerMetadata({"op_tos_uri": "https://provider.test/"})
     metadata.validate_op_tos_uri()
 
 
@@ -294,14 +299,14 @@ def test_validate_revocation_endpoint():
 
     # https
     metadata = AuthorizationServerMetadata(
-        {"revocation_endpoint": "http://authlib.org/"}
+        {"revocation_endpoint": "http://provider.test/"}
     )
     with pytest.raises(ValueError, match="https"):
         metadata.validate_revocation_endpoint()
 
     # valid
     metadata = AuthorizationServerMetadata(
-        {"revocation_endpoint": "https://authlib.org/"}
+        {"revocation_endpoint": "https://provider.test/"}
     )
     metadata.validate_revocation_endpoint()
 
@@ -359,14 +364,14 @@ def test_validate_introspection_endpoint():
 
     # https
     metadata = AuthorizationServerMetadata(
-        {"introspection_endpoint": "http://authlib.org/"}
+        {"introspection_endpoint": "http://provider.test/"}
     )
     with pytest.raises(ValueError, match="https"):
         metadata.validate_introspection_endpoint()
 
     # valid
     metadata = AuthorizationServerMetadata(
-        {"introspection_endpoint": "https://authlib.org/"}
+        {"introspection_endpoint": "https://provider.test/"}
     )
     metadata.validate_introspection_endpoint()
 

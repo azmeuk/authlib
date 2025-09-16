@@ -17,7 +17,7 @@ def client(client, db):
     client.set_client_metadata(
         {
             "scope": "profile",
-            "redirect_uris": ["http://localhost/authorized"],
+            "redirect_uris": ["https://client.test/authorized"],
             "grant_types": ["client_credentials"],
         }
     )
@@ -52,7 +52,7 @@ def test_invalid_grant_type(test_client, client, db):
     client.set_client_metadata(
         {
             "scope": "profile",
-            "redirect_uris": ["http://localhost/authorized"],
+            "redirect_uris": ["https://client.test/authorized"],
             "grant_types": ["invalid"],
         }
     )

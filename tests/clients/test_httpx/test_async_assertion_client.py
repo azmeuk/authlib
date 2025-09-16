@@ -20,11 +20,11 @@ default_token = {
 async def test_refresh_token():
     async def verifier(request):
         content = await request.body()
-        if str(request.url) == "https://i.b/token":
+        if str(request.url) == "https://provider.test/token":
             assert b"assertion=" in content
 
     async with AsyncAssertionClient(
-        "https://i.b/token",
+        "https://provider.test/token",
         grant_type=AsyncAssertionClient.JWT_BEARER_GRANT_TYPE,
         issuer="foo",
         subject="foo",
@@ -33,12 +33,12 @@ async def test_refresh_token():
         key="secret",
         transport=ASGITransport(AsyncMockDispatch(default_token, assert_func=verifier)),
     ) as client:
-        await client.get("https://i.b")
+        await client.get("https://provider.test")
 
     # trigger more case
     now = int(time.time())
     async with AsyncAssertionClient(
-        "https://i.b/token",
+        "https://provider.test/token",
         issuer="foo",
         subject=None,
         audience="foo",
@@ -50,14 +50,14 @@ async def test_refresh_token():
         claims={"test_mode": "true"},
         transport=ASGITransport(AsyncMockDispatch(default_token, assert_func=verifier)),
     ) as client:
-        await client.get("https://i.b")
-        await client.get("https://i.b")
+        await client.get("https://provider.test")
+        await client.get("https://provider.test")
 
 
 @pytest.mark.asyncio
 async def test_without_alg():
     async with AsyncAssertionClient(
-        "https://i.b/token",
+        "https://provider.test/token",
         issuer="foo",
         subject="foo",
         audience="foo",
@@ -65,4 +65,4 @@ async def test_without_alg():
         transport=ASGITransport(AsyncMockDispatch()),
     ) as client:
         with pytest.raises(ValueError):
-            await client.get("https://i.b")
+            await client.get("https://provider.test")

@@ -8,7 +8,7 @@ from authlib.integrations.httpx_client import OAuthError
 
 from ..wsgi_helper import MockDispatch
 
-oauth_url = "https://example.com/oauth"
+oauth_url = "https://provider.test/oauth"
 
 
 def test_fetch_request_token_via_header():
@@ -109,7 +109,7 @@ def test_get_via_header():
         token_secret="bar",
         transport=transport,
     ) as client:
-        response = client.get("https://example.com/")
+        response = client.get("https://resource.test/")
 
     assert response.content == b"hello"
     request = response.request
@@ -135,7 +135,7 @@ def test_get_via_body():
         signature_type=SIGNATURE_TYPE_BODY,
         transport=transport,
     ) as client:
-        response = client.post("https://example.com/")
+        response = client.post("https://resource.test/")
 
     assert response.content == b"hello"
 
@@ -154,7 +154,7 @@ def test_get_via_query():
         signature_type=SIGNATURE_TYPE_QUERY,
         transport=transport,
     ) as client:
-        response = client.get("https://example.com/")
+        response = client.get("https://resource.test/")
 
     assert response.content == b"hello"
     request = response.request

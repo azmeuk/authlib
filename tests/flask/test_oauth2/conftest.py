@@ -26,7 +26,9 @@ def app():
         {
             "SQLALCHEMY_TRACK_MODIFICATIONS": False,
             "SQLALCHEMY_DATABASE_URI": "sqlite://",
-            "OAUTH2_ERROR_URIS": [("invalid_client", "https://a.b/e#invalid_client")],
+            "OAUTH2_ERROR_URIS": [
+                ("invalid_client", "https://client.test/error#invalid_client")
+            ],
         }
     )
     with app.app_context():
@@ -66,7 +68,7 @@ def client(db, user):
     )
     client.set_client_metadata(
         {
-            "redirect_uris": ["http://localhost/authorized"],
+            "redirect_uris": ["https://client.test/authorized"],
             "scope": "profile",
             "grant_types": ["authorization_code"],
             "response_types": ["code"],

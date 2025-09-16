@@ -27,7 +27,7 @@ async def run_fetch_userinfo(payload):
         client_id="dev",
         client_secret="dev",
         fetch_token=fetch_token,
-        userinfo_endpoint="https://i.b/userinfo",
+        userinfo_endpoint="https://provider.test/userinfo",
         client_kwargs={
             "transport": transport,
         },
@@ -52,7 +52,7 @@ async def test_parse_id_token():
         {"sub": "123"},
         secret_key,
         alg="HS256",
-        iss="https://i.b",
+        iss="https://provider.test",
         aud="dev",
         exp=3600,
         nonce="n",
@@ -66,18 +66,18 @@ async def test_parse_id_token():
         client_secret="dev",
         fetch_token=get_bearer_token,
         jwks={"keys": [secret_key.as_dict()]},
-        issuer="https://i.b",
+        issuer="https://provider.test",
         id_token_signing_alg_values_supported=["HS256", "RS256"],
     )
     user = await client.parse_id_token(token, nonce="n")
     assert user.sub == "123"
 
-    claims_options = {"iss": {"value": "https://i.b"}}
+    claims_options = {"iss": {"value": "https://provider.test"}}
     user = await client.parse_id_token(token, nonce="n", claims_options=claims_options)
     assert user.sub == "123"
 
     with pytest.raises(InvalidClaimError):
-        claims_options = {"iss": {"value": "https://i.c"}}
+        claims_options = {"iss": {"value": "https://wrong-provider.test"}}
         await client.parse_id_token(token, nonce="n", claims_options=claims_options)
 
 
@@ -89,7 +89,7 @@ async def test_runtime_error_fetch_jwks_uri():
         {"sub": "123"},
         secret_key,
         alg="HS256",
-        iss="https://i.b",
+        iss="https://provider.test",
         aud="dev",
         exp=3600,
         nonce="n",
@@ -101,7 +101,7 @@ async def test_runtime_error_fetch_jwks_uri():
         client_id="dev",
         client_secret="dev",
         fetch_token=get_bearer_token,
-        issuer="https://i.b",
+        issuer="https://provider.test",
         id_token_signing_alg_values_supported=["HS256"],
     )
     req_scope = {"type": "http", "session": {"_dev_authlib_nonce_": "n"}}
@@ -120,7 +120,7 @@ async def test_force_fetch_jwks_uri():
         {"sub": "123"},
         secret_keys,
         alg="RS256",
-        iss="https://i.b",
+        iss="https://provider.test",
         aud="dev",
         exp=3600,
         nonce="n",
@@ -137,8 +137,8 @@ async def test_force_fetch_jwks_uri():
         client_id="dev",
         client_secret="dev",
         fetch_token=get_bearer_token,
-        jwks_uri="https://i.b/jwks",
-        issuer="https://i.b",
+        jwks_uri="https://provider.test/jwks",
+        issuer="https://provider.test",
         client_kwargs={
             "transport": transport,
         },

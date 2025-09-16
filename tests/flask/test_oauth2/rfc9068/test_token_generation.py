@@ -30,7 +30,7 @@ def client(client, db):
     client.set_client_metadata(
         {
             "scope": "profile",
-            "redirect_uris": ["http://localhost/authorized"],
+            "redirect_uris": ["https://client.test/authorized"],
             "response_types": ["code"],
             "token_endpoint_auth_method": "client_secret_post",
             "grant_types": ["authorization_code"],

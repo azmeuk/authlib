@@ -14,7 +14,7 @@ from .models import Token
 def server(server, app, db):
     class UserInfoEndpoint(oidc_core.UserInfoEndpoint):
         def get_issuer(self) -> str:
-            return "https://auth.example"
+            return "https://provider.test"
 
         def generate_user_info(self, user, scope):
             return user.generate_user_info().filter(scope)
@@ -39,7 +39,7 @@ def client(client, db):
     client.set_client_metadata(
         {
             "scope": "profile",
-            "redirect_uris": ["http://localhost/authorized"],
+            "redirect_uris": ["https://client.test/authorized"],
         }
     )
     db.session.add(client)
@@ -99,11 +99,11 @@ def test_get(test_client, db, token):
         "nickname": "Jany",
         "phone_number": "+1 (425) 555-1212",
         "phone_number_verified": False,
-        "picture": "https://example.com/janedoe/me.jpg",
+        "picture": "https://resource.test/janedoe/me.jpg",
         "preferred_username": "j.doe",
-        "profile": "https://example.com/janedoe",
+        "profile": "https://resource.test/janedoe",
         "updated_at": 1745315119,
-        "website": "https://example.com",
+        "website": "https://resource.test",
         "zoneinfo": "Europe/Paris",
     }
 
@@ -143,11 +143,11 @@ def test_post(test_client, db, token):
         "nickname": "Jany",
         "phone_number": "+1 (425) 555-1212",
         "phone_number_verified": False,
-        "picture": "https://example.com/janedoe/me.jpg",
+        "picture": "https://resource.test/janedoe/me.jpg",
         "preferred_username": "j.doe",
-        "profile": "https://example.com/janedoe",
+        "profile": "https://resource.test/janedoe",
         "updated_at": 1745315119,
-        "website": "https://example.com",
+        "website": "https://resource.test",
         "zoneinfo": "Europe/Paris",
     }
 
@@ -205,11 +205,11 @@ def test_scope_profile(test_client, db, token):
         "middle_name": "Middle",
         "name": "foo",
         "nickname": "Jany",
-        "picture": "https://example.com/janedoe/me.jpg",
+        "picture": "https://resource.test/janedoe/me.jpg",
         "preferred_username": "j.doe",
-        "profile": "https://example.com/janedoe",
+        "profile": "https://resource.test/janedoe",
         "updated_at": 1745315119,
-        "website": "https://example.com",
+        "website": "https://resource.test",
         "zoneinfo": "Europe/Paris",
     }
 
@@ -270,7 +270,7 @@ def test_scope_signed_unsecured(test_client, db, token, client):
     client.set_client_metadata(
         {
             "scope": "profile",
-            "redirect_uris": ["http://localhost/authorized"],
+            "redirect_uris": ["https://client.test/authorized"],
             "userinfo_signed_response_alg": "none",
         }
     )
@@ -288,7 +288,7 @@ def test_scope_signed_unsecured(test_client, db, token, client):
     claims = jwt.decode(rv.data, None)
     assert claims == {
         "sub": "1",
-        "iss": "https://auth.example",
+        "iss": "https://provider.test",
         "aud": "client-id",
         "email": "janedoe@example.com",
         "email_verified": True,
@@ -300,7 +300,7 @@ def test_scope_signed_secured(test_client, client, token, db):
     client.set_client_metadata(
         {
             "scope": "profile",
-            "redirect_uris": ["http://localhost/authorized"],
+            "redirect_uris": ["https://client.test/authorized"],
             "userinfo_signed_response_alg": "RS256",
         }
     )
@@ -319,7 +319,7 @@ def test_scope_signed_secured(test_client, client, token, db):
     claims = jwt.decode(rv.data, pub_key)
     assert claims == {
         "sub": "1",
-        "iss": "https://auth.example",
+        "iss": "https://provider.test",
         "aud": "client-id",
         "email": "janedoe@example.com",
         "email_verified": True,

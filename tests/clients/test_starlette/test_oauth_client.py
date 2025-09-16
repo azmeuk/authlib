@@ -57,10 +57,10 @@ async def test_oauth1_authorize():
         "dev",
         client_id="dev",
         client_secret="dev",
-        request_token_url="https://i.b/request-token",
-        api_base_url="https://i.b/api",
-        access_token_url="https://i.b/token",
-        authorize_url="https://i.b/authorize",
+        request_token_url="https://provider.test/request-token",
+        api_base_url="https://resource.test/api",
+        access_token_url="https://provider.test/token",
+        authorize_url="https://provider.test/authorize",
         client_kwargs={
             "transport": transport,
         },
@@ -68,7 +68,7 @@ async def test_oauth1_authorize():
 
     req_scope = {"type": "http", "session": {}}
     req = Request(req_scope)
-    resp = await client.authorize_redirect(req, "https://b.com/bar")
+    resp = await client.authorize_redirect(req, "https://client.test/callback")
     assert resp.status_code == 302
     url = resp.headers.get("Location")
     assert "oauth_token=foo" in url
@@ -88,9 +88,9 @@ async def test_oauth2_authorize():
         "dev",
         client_id="dev",
         client_secret="dev",
-        api_base_url="https://i.b/api",
-        access_token_url="https://i.b/token",
-        authorize_url="https://i.b/authorize",
+        api_base_url="https://resource.test/api",
+        access_token_url="https://provider.test/token",
+        authorize_url="https://provider.test/authorize",
         client_kwargs={
             "transport": transport,
         },
@@ -98,7 +98,7 @@ async def test_oauth2_authorize():
 
     req_scope = {"type": "http", "session": {}}
     req = Request(req_scope)
-    resp = await client.authorize_redirect(req, "https://b.com/bar")
+    resp = await client.authorize_redirect(req, "https://client.test/callback")
     assert resp.status_code == 302
     url = resp.headers.get("Location")
     assert "state=" in url
@@ -128,9 +128,9 @@ async def test_oauth2_authorize_access_denied():
         "dev",
         client_id="dev",
         client_secret="dev",
-        api_base_url="https://i.b/api",
-        access_token_url="https://i.b/token",
-        authorize_url="https://i.b/authorize",
+        api_base_url="https://resource.test/api",
+        access_token_url="https://provider.test/token",
+        authorize_url="https://provider.test/authorize",
         client_kwargs={
             "transport": transport,
         },
@@ -157,9 +157,9 @@ async def test_oauth2_authorize_code_challenge():
     client = oauth.register(
         "dev",
         client_id="dev",
-        api_base_url="https://i.b/api",
-        access_token_url="https://i.b/token",
-        authorize_url="https://i.b/authorize",
+        api_base_url="https://resource.test/api",
+        access_token_url="https://provider.test/token",
+        authorize_url="https://provider.test/authorize",
         client_kwargs={
             "code_challenge_method": "S256",
             "transport": transport,
@@ -169,7 +169,9 @@ async def test_oauth2_authorize_code_challenge():
     req_scope = {"type": "http", "session": {}}
     req = Request(req_scope)
 
-    resp = await client.authorize_redirect(req, redirect_uri="https://b.com/bar")
+    resp = await client.authorize_redirect(
+        req, redirect_uri="https://client.test/callback"
+    )
     assert resp.status_code == 302
 
     url = resp.headers.get("Location")
@@ -206,9 +208,9 @@ async def test_with_fetch_token_in_register():
         "dev",
         client_id="dev",
         client_secret="dev",
-        api_base_url="https://i.b/api",
-        access_token_url="https://i.b/token",
-        authorize_url="https://i.b/authorize",
+        api_base_url="https://resource.test/api",
+        access_token_url="https://provider.test/token",
+        authorize_url="https://provider.test/authorize",
         fetch_token=fetch_token,
         client_kwargs={
             "transport": transport,
@@ -232,9 +234,9 @@ async def test_with_fetch_token_in_oauth():
         "dev",
         client_id="dev",
         client_secret="dev",
-        api_base_url="https://i.b/api",
-        access_token_url="https://i.b/token",
-        authorize_url="https://i.b/authorize",
+        api_base_url="https://resource.test/api",
+        access_token_url="https://provider.test/token",
+        authorize_url="https://provider.test/authorize",
         client_kwargs={
             "transport": transport,
         },
@@ -254,9 +256,9 @@ async def test_request_withhold_token():
         "dev",
         client_id="dev",
         client_secret="dev",
-        api_base_url="https://i.b/api",
-        access_token_url="https://i.b/token",
-        authorize_url="https://i.b/authorize",
+        api_base_url="https://resource.test/api",
+        access_token_url="https://provider.test/token",
+        authorize_url="https://provider.test/authorize",
         client_kwargs={
             "transport": transport,
         },
@@ -274,8 +276,8 @@ async def test_oauth2_authorize_no_url():
         "dev",
         client_id="dev",
         client_secret="dev",
-        api_base_url="https://i.b/api",
-        access_token_url="https://i.b/token",
+        api_base_url="https://resource.test/api",
+        access_token_url="https://provider.test/token",
     )
     req_scope = {"type": "http", "session": {}}
     req = Request(req_scope)
@@ -290,7 +292,9 @@ async def test_oauth2_authorize_with_metadata():
         AsyncPathMapDispatch(
             {
                 "/.well-known/openid-configuration": {
-                    "body": {"authorization_endpoint": "https://i.b/authorize"}
+                    "body": {
+                        "authorization_endpoint": "https://provider.test/authorize"
+                    }
                 }
             }
         )
@@ -299,16 +303,16 @@ async def test_oauth2_authorize_with_metadata():
         "dev",
         client_id="dev",
         client_secret="dev",
-        api_base_url="https://i.b/api",
-        access_token_url="https://i.b/token",
-        server_metadata_url="https://i.b/.well-known/openid-configuration",
+        api_base_url="https://resource.test/api",
+        access_token_url="https://provider.test/token",
+        server_metadata_url="https://provider.test/.well-known/openid-configuration",
         client_kwargs={
             "transport": transport,
         },
     )
     req_scope = {"type": "http", "session": {}}
     req = Request(req_scope)
-    resp = await client.authorize_redirect(req, "https://b.com/bar")
+    resp = await client.authorize_redirect(req, "https://client.test/callback")
     assert resp.status_code == 302
 
 
@@ -323,16 +327,16 @@ async def test_oauth2_authorize_form_post_callback():
         "dev",
         client_id="dev",
         client_secret="dev",
-        api_base_url="https://i.b/api",
-        access_token_url="https://i.b/token",
-        authorize_url="https://i.b/authorize",
+        api_base_url="https://resource.test/api",
+        access_token_url="https://provider.test/token",
+        authorize_url="https://provider.test/authorize",
         client_kwargs={
             "transport": transport,
         },
     )
 
     req = Request({"type": "http", "session": {}})
-    resp = await client.authorize_redirect(req, "https://b.com/bar")
+    resp = await client.authorize_redirect(req, "https://client.test/callback")
     url = resp.headers.get("Location")
     state = dict(url_decode(urlparse.urlparse(url).query))["state"]
 

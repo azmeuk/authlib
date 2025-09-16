@@ -10,16 +10,16 @@ from authlib.oauth2.rfc6749 import util
 def test_parse_authorization_code_response():
     with pytest.raises(errors.MissingCodeException):
         parameters.parse_authorization_code_response(
-            "https://i.b/?state=c",
+            "https://provider.test/?state=c",
         )
 
     with pytest.raises(errors.MismatchingStateException):
         parameters.parse_authorization_code_response(
-            "https://i.b/?code=a&state=c",
+            "https://provider.test/?code=a&state=c",
             "b",
         )
 
-    url = "https://i.b/?code=a&state=c"
+    url = "https://provider.test/?code=a&state=c"
     rv = parameters.parse_authorization_code_response(url, "c")
     assert rv == {"code": "a", "state": "c"}
 
@@ -27,31 +27,32 @@ def test_parse_authorization_code_response():
 def test_parse_implicit_response():
     with pytest.raises(errors.MissingTokenException):
         parameters.parse_implicit_response(
-            "https://i.b/#a=b",
+            "https://provider.test/#a=b",
         )
 
     with pytest.raises(errors.MissingTokenTypeException):
         parameters.parse_implicit_response(
-            "https://i.b/#access_token=a",
+            "https://provider.test/#access_token=a",
         )
 
     with pytest.raises(errors.MismatchingStateException):
         parameters.parse_implicit_response(
-            "https://i.b/#access_token=a&token_type=bearer&state=c",
+            "https://provider.test/#access_token=a&token_type=bearer&state=c",
             "abc",
         )
 
-    url = "https://i.b/#access_token=a&token_type=bearer&state=c"
+    url = "https://provider.test/#access_token=a&token_type=bearer&state=c"
     rv = parameters.parse_implicit_response(url, "c")
     assert rv == {"access_token": "a", "token_type": "bearer", "state": "c"}
 
 
 def test_prepare_grant_uri():
     grant_uri = parameters.prepare_grant_uri(
-        "https://i.b/authorize", "dev", "code", max_age=0
+        "https://provider.test/authorize", "dev", "code", max_age=0
     )
     assert (
-        grant_uri == "https://i.b/authorize?response_type=code&client_id=dev&max_age=0"
+        grant_uri
+        == "https://provider.test/authorize?response_type=code&client_id=dev&max_age=0"
     )
 
 

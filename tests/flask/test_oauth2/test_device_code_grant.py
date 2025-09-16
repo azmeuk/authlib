@@ -58,7 +58,7 @@ class DeviceCodeGrant(_DeviceCodeGrant):
         data["device_code"] = device_code
         data["scope"] = "profile"
         data["interval"] = 5
-        data["verification_uri"] = "https://example.com/activate"
+        data["verification_uri"] = "https://resource.test/activate"
         return DeviceCredentialDict(data)
 
     def query_user_grant(self, user_code):
@@ -74,7 +74,7 @@ class DeviceCodeGrant(_DeviceCodeGrant):
 
 class DeviceAuthorizationEndpoint(_DeviceAuthorizationEndpoint):
     def get_verification_uri(self):
-        return "https://example.com/activate"
+        return "https://resource.test/activate"
 
     def save_device_credential(self, client_id, scope, data):
         pass
@@ -98,7 +98,7 @@ def server(server, app):
 def client(client, db):
     client.set_client_metadata(
         {
-            "redirect_uris": ["http://localhost/authorized"],
+            "redirect_uris": ["https://client.test/authorized"],
             "scope": "profile",
             "grant_types": [DeviceCodeGrant.GRANT_TYPE],
             "token_endpoint_auth_method": "none",
@@ -146,7 +146,7 @@ def test_unauthorized_client(test_client, db, client):
 
     client.set_client_metadata(
         {
-            "redirect_uris": ["http://localhost/authorized"],
+            "redirect_uris": ["https://client.test/authorized"],
             "scope": "profile",
             "grant_types": ["password"],
             "token_endpoint_auth_method": "none",
@@ -257,8 +257,8 @@ def test_create_authorization_response(test_client):
     resp = json.loads(rv.data)
     assert "device_code" in resp
     assert "user_code" in resp
-    assert resp["verification_uri"] == "https://example.com/activate"
+    assert resp["verification_uri"] == "https://resource.test/activate"
     assert (
         resp["verification_uri_complete"]
-        == "https://example.com/activate?user_code=" + resp["user_code"]
+        == "https://resource.test/activate?user_code=" + resp["user_code"]
     )

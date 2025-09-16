@@ -23,7 +23,7 @@ def test_fetch_userinfo():
         client_id="dev",
         client_secret="dev",
         fetch_token=get_bearer_token,
-        userinfo_endpoint="https://i.b/userinfo",
+        userinfo_endpoint="https://provider.test/userinfo",
     )
 
     def fake_send(sess, req, **kwargs):
@@ -45,7 +45,7 @@ def test_parse_id_token():
         {"sub": "123"},
         secret_key,
         alg="HS256",
-        iss="https://i.b",
+        iss="https://provider.test",
         aud="dev",
         exp=3600,
         nonce="n",
@@ -60,7 +60,7 @@ def test_parse_id_token():
         client_secret="dev",
         fetch_token=get_bearer_token,
         jwks={"keys": [secret_key.as_dict()]},
-        issuer="https://i.b",
+        issuer="https://provider.test",
         id_token_signing_alg_values_supported=["HS256", "RS256"],
     )
     with app.test_request_context():
@@ -70,11 +70,11 @@ def test_parse_id_token():
         user = client.parse_id_token(token, nonce="n")
         assert user.sub == "123"
 
-        claims_options = {"iss": {"value": "https://i.b"}}
+        claims_options = {"iss": {"value": "https://provider.test"}}
         user = client.parse_id_token(token, nonce="n", claims_options=claims_options)
         assert user.sub == "123"
 
-        claims_options = {"iss": {"value": "https://i.c"}}
+        claims_options = {"iss": {"value": "https://wrong-provider.test"}}
         with pytest.raises(InvalidClaimError):
             client.parse_id_token(token, "n", claims_options)
 
@@ -86,7 +86,7 @@ def test_parse_id_token_nonce_supported():
         {"sub": "123", "nonce_supported": False},
         secret_key,
         alg="HS256",
-        iss="https://i.b",
+        iss="https://provider.test",
         aud="dev",
         exp=3600,
     )
@@ -100,7 +100,7 @@ def test_parse_id_token_nonce_supported():
         client_secret="dev",
         fetch_token=get_bearer_token,
         jwks={"keys": [secret_key.as_dict()]},
-        issuer="https://i.b",
+        issuer="https://provider.test",
         id_token_signing_alg_values_supported=["HS256", "RS256"],
     )
     with app.test_request_context():
@@ -116,7 +116,7 @@ def test_runtime_error_fetch_jwks_uri():
         {"sub": "123"},
         secret_key,
         alg="HS256",
-        iss="https://i.b",
+        iss="https://provider.test",
         aud="dev",
         exp=3600,
         nonce="n",
@@ -133,7 +133,7 @@ def test_runtime_error_fetch_jwks_uri():
         client_secret="dev",
         fetch_token=get_bearer_token,
         jwks={"keys": [alt_key]},
-        issuer="https://i.b",
+        issuer="https://provider.test",
         id_token_signing_alg_values_supported=["HS256"],
     )
     with app.test_request_context():
@@ -150,7 +150,7 @@ def test_force_fetch_jwks_uri():
         {"sub": "123"},
         secret_keys,
         alg="RS256",
-        iss="https://i.b",
+        iss="https://provider.test",
         aud="dev",
         exp=3600,
         nonce="n",
@@ -165,8 +165,8 @@ def test_force_fetch_jwks_uri():
         client_secret="dev",
         fetch_token=get_bearer_token,
         jwks={"keys": [secret_key.as_dict()]},
-        jwks_uri="https://i.b/jwks",
-        issuer="https://i.b",
+        jwks_uri="https://provider.test/jwks",
+        issuer="https://provider.test",
     )
 
     def fake_send(sess, req, **kwargs):

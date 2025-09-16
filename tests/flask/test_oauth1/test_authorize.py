@@ -22,7 +22,7 @@ def client(db, user):
         user_id=user.id,
         client_id="client",
         client_secret="secret",
-        default_redirect_uri="https://a.b",
+        default_redirect_uri="https://client.test",
     )
     db.session.add(client)
     db.session.commit()
@@ -68,7 +68,7 @@ def test_authorize_denied(app, test_client, use_cache):
     rv = test_client.post(authorize_url, data={"oauth_token": data["oauth_token"]})
     assert rv.status_code == 302
     assert "access_denied" in rv.headers["Location"]
-    assert "https://a.b" in rv.headers["Location"]
+    assert "https://client.test" in rv.headers["Location"]
 
     rv = test_client.post(
         initiate_url,
@@ -111,7 +111,7 @@ def test_authorize_granted(app, test_client, use_cache):
     )
     assert rv.status_code == 302
     assert "oauth_verifier" in rv.headers["Location"]
-    assert "https://a.b" in rv.headers["Location"]
+    assert "https://client.test" in rv.headers["Location"]
 
     rv = test_client.post(
         initiate_url,

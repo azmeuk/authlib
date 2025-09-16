@@ -26,7 +26,7 @@ def client(client, db):
     client.set_client_metadata(
         {
             "scope": "profile",
-            "redirect_uris": ["http://localhost/authorized"],
+            "redirect_uris": ["https://client.test/authorized"],
         }
     )
     db.session.add(client)
@@ -143,7 +143,7 @@ def test_revoke_token_bound_to_client(test_client, token):
     client2.set_client_metadata(
         {
             "scope": "profile",
-            "redirect_uris": ["http://localhost/authorized"],
+            "redirect_uris": ["https://client.test/authorized"],
         }
     )
     db.session.add(client2)

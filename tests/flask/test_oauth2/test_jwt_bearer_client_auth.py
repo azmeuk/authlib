@@ -24,7 +24,7 @@ def client(client, db):
     client.set_client_metadata(
         {
             "scope": "profile",
-            "redirect_uris": ["http://localhost/authorized"],
+            "redirect_uris": ["https://client.test/authorized"],
             "grant_types": ["client_credentials"],
             "token_endpoint_auth_method": JWTBearerClientAssertion.CLIENT_AUTH_METHOD,
         }
@@ -46,7 +46,7 @@ def register_jwt_client_auth(server, validate_jti=True):
 
     server.register_client_auth_method(
         JWTClientAuth.CLIENT_AUTH_METHOD,
-        JWTClientAuth("https://localhost/oauth/token", validate_jti),
+        JWTClientAuth("https://provider.test/oauth/token", validate_jti),
     )
 
 
@@ -74,7 +74,7 @@ def test_invalid_jwt(test_client, server):
             "client_assertion": client_secret_jwt_sign(
                 client_secret="invalid-secret",
                 client_id="client-id",
-                token_endpoint="https://localhost/oauth/token",
+                token_endpoint="https://provider.test/oauth/token",
             ),
         },
     )
@@ -93,7 +93,7 @@ def test_not_found_client(test_client, server):
             "client_assertion": client_secret_jwt_sign(
                 client_secret="client-secret",
                 client_id="invalid-client",
-                token_endpoint="https://localhost/oauth/token",
+                token_endpoint="https://provider.test/oauth/token",
             ),
         },
     )
@@ -106,7 +106,7 @@ def test_not_supported_auth_method(test_client, server, client, db):
     client.set_client_metadata(
         {
             "scope": "profile",
-            "redirect_uris": ["http://localhost/authorized"],
+            "redirect_uris": ["https://client.test/authorized"],
             "grant_types": ["client_credentials"],
             "token_endpoint_auth_method": "invalid",
         }
@@ -121,7 +121,7 @@ def test_not_supported_auth_method(test_client, server, client, db):
             "client_assertion": client_secret_jwt_sign(
                 client_secret="client-secret",
                 client_id="client-id",
-                token_endpoint="https://localhost/oauth/token",
+                token_endpoint="https://provider.test/oauth/token",
             ),
         },
     )
@@ -139,7 +139,7 @@ def test_client_secret_jwt(test_client, server):
             "client_assertion": client_secret_jwt_sign(
                 client_secret="client-secret",
                 client_id="client-id",
-                token_endpoint="https://localhost/oauth/token",
+                token_endpoint="https://provider.test/oauth/token",
                 claims={"jti": "nonce"},
             ),
         },
@@ -158,7 +158,7 @@ def test_private_key_jwt(test_client, server):
             "client_assertion": private_key_jwt_sign(
                 private_key=read_file_path("jwk_private.json"),
                 client_id="client-id",
-                token_endpoint="https://localhost/oauth/token",
+                token_endpoint="https://provider.test/oauth/token",
             ),
         },
     )
@@ -177,7 +177,7 @@ def test_not_validate_jti(test_client, server):
             "client_assertion": client_secret_jwt_sign(
                 client_secret="client-secret",
                 client_id="client-id",
-                token_endpoint="https://localhost/oauth/token",
+                token_endpoint="https://provider.test/oauth/token",
             ),
         },
     )

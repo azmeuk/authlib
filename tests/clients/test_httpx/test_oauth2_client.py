@@ -50,7 +50,7 @@ def test_add_token_get_request(assert_func, token_placement):
     with OAuth2Client(
         "foo", token=default_token, token_placement=token_placement, transport=transport
     ) as client:
-        resp = client.get("https://i.b")
+        resp = client.get("https://provider.test")
 
     data = resp.json()
     assert data["a"] == "a"
@@ -69,14 +69,14 @@ def test_add_token_to_streaming_request(assert_func, token_placement):
     with OAuth2Client(
         "foo", token=default_token, token_placement=token_placement, transport=transport
     ) as client:
-        with client.stream("GET", "https://i.b") as stream:
+        with client.stream("GET", "https://provider.test") as stream:
             stream.read()
             data = stream.json()
     assert data["a"] == "a"
 
 
 def test_create_authorization_url():
-    url = "https://example.com/authorize?foo=bar"
+    url = "https://provider.test/authorize?foo=bar"
 
     sess = OAuth2Client(client_id="foo")
     auth_url, state = sess.create_authorization_url(url)
@@ -86,10 +86,10 @@ def test_create_authorization_url():
 
     sess = OAuth2Client(client_id="foo", prompt="none")
     auth_url, state = sess.create_authorization_url(
-        url, state="foo", redirect_uri="https://i.b", scope="profile"
+        url, state="foo", redirect_uri="https://provider.test", scope="profile"
     )
     assert state == "foo"
-    assert "i.b" in auth_url
+    assert "provider.test" in auth_url
     assert "profile" in auth_url
     assert "prompt=none" in auth_url
 
@@ -97,7 +97,7 @@ def test_create_authorization_url():
 def test_code_challenge():
     sess = OAuth2Client("foo", code_challenge_method="S256")
 
-    url = "https://example.com/authorize"
+    url = "https://provider.test/authorize"
     auth_url, _ = sess.create_authorization_url(url, code_verifier=generate_token(48))
     assert "code_challenge=" in auth_url
     assert "code_challenge_method=S256" in auth_url
@@ -105,14 +105,14 @@ def test_code_challenge():
 
 def test_token_from_fragment():
     sess = OAuth2Client("foo")
-    response_url = "https://i.b/callback#" + url_encode(default_token.items())
+    response_url = "https://provider.test/callback#" + url_encode(default_token.items())
     assert sess.token_from_fragment(response_url) == default_token
     token = sess.fetch_token(authorization_response=response_url)
     assert token == default_token
 
 
 def test_fetch_token_post():
-    url = "https://example.com/token"
+    url = "https://provider.test/token"
 
     def assert_func(request):
         content = request.form
@@ -122,7 +122,9 @@ def test_fetch_token_post():
 
     transport = WSGITransport(MockDispatch(default_token, assert_func=assert_func))
     with OAuth2Client("foo", transport=transport) as client:
-        token = client.fetch_token(url, authorization_response="https://i.b/?code=v")
+        token = client.fetch_token(
+            url, authorization_response="https://provider.test/?code=v"
+        )
         assert token == default_token
 
     with OAuth2Client(
@@ -138,7 +140,7 @@ def test_fetch_token_post():
 
 
 def test_fetch_token_get():
-    url = "https://example.com/token"
+    url = "https://provider.test/token"
 
     def assert_func(request):
         url = str(request.url)
@@ -148,7 +150,7 @@ def test_fetch_token_get():
 
     transport = WSGITransport(MockDispatch(default_token, assert_func=assert_func))
     with OAuth2Client("foo", transport=transport) as client:
-        authorization_response = "https://i.b/?code=v"
+        authorization_response = "https://provider.test/?code=v"
         token = client.fetch_token(
             url, authorization_response=authorization_response, method="GET"
         )
@@ -165,7 +167,7 @@ def test_fetch_token_get():
 
 
 def test_token_auth_method_client_secret_post():
-    url = "https://example.com/token"
+    url = "https://provider.test/token"
 
     def assert_func(request):
         content = request.form
@@ -187,7 +189,7 @@ def test_token_auth_method_client_secret_post():
 
 
 def test_access_token_response_hook():
-    url = "https://example.com/token"
+    url = "https://provider.test/token"
 
     def _access_token_response_hook(resp):
         assert resp.json() == default_token
@@ -204,7 +206,7 @@ def test_access_token_response_hook():
 
 
 def test_password_grant_type():
-    url = "https://example.com/token"
+    url = "https://provider.test/token"
 
     def assert_func(request):
         content = request.form
@@ -222,7 +224,7 @@ def test_password_grant_type():
 
 
 def test_client_credentials_type():
-    url = "https://example.com/token"
+    url = "https://provider.test/token"
 
     def assert_func(request):
         content = request.form
@@ -244,7 +246,7 @@ def test_cleans_previous_token_before_fetching_new_one():
     past = now - 7200
     default_token["expires_at"] = past
     new_token["expires_at"] = now + 3600
-    url = "https://example.com/token"
+    url = "https://provider.test/token"
 
     transport = WSGITransport(MockDispatch(new_token))
     with mock.patch("time.time", lambda: now):
@@ -273,23 +275,23 @@ def test_auto_refresh_token():
     with OAuth2Client(
         "foo",
         token=old_token,
-        token_endpoint="https://i.b/token",
+        token_endpoint="https://provider.test/token",
         update_token=update_token,
         transport=transport,
     ) as sess:
-        sess.get("https://i.b/user")
+        sess.get("https://resource.test/user")
         assert update_token.called is True
 
     old_token = dict(access_token="a", token_type="bearer", expires_at=100)
     with OAuth2Client(
         "foo",
         token=old_token,
-        token_endpoint="https://i.b/token",
+        token_endpoint="https://provider.test/token",
         update_token=update_token,
         transport=transport,
     ) as sess:
         with pytest.raises(OAuthError):
-            sess.get("https://i.b/user")
+            sess.get("https://resource.test/user")
 
 
 def test_auto_refresh_token2():
@@ -306,22 +308,22 @@ def test_auto_refresh_token2():
     with OAuth2Client(
         "foo",
         token=old_token,
-        token_endpoint="https://i.b/token",
+        token_endpoint="https://provider.test/token",
         grant_type="client_credentials",
         transport=transport,
     ) as client:
-        client.get("https://i.b/user")
+        client.get("https://resource.test/user")
         assert update_token.called is False
 
     with OAuth2Client(
         "foo",
         token=old_token,
-        token_endpoint="https://i.b/token",
+        token_endpoint="https://provider.test/token",
         update_token=update_token,
         grant_type="client_credentials",
         transport=transport,
     ) as client:
-        client.get("https://i.b/user")
+        client.get("https://resource.test/user")
         assert update_token.called is True
 
 
@@ -339,12 +341,12 @@ def test_auto_refresh_token3():
     with OAuth2Client(
         "foo",
         token=old_token,
-        token_endpoint="https://i.b/token",
+        token_endpoint="https://provider.test/token",
         update_token=update_token,
         grant_type="client_credentials",
         transport=transport,
     ) as client:
-        client.post("https://i.b/user", json={"foo": "bar"})
+        client.post("https://resource.test/user", json={"foo": "bar"})
         assert update_token.called is True
 
 
@@ -353,11 +355,11 @@ def test_revoke_token():
     transport = WSGITransport(MockDispatch(answer))
 
     with OAuth2Client("a", transport=transport) as sess:
-        resp = sess.revoke_token("https://i.b/token", "hi")
+        resp = sess.revoke_token("https://provider.test/token", "hi")
         assert resp.json() == answer
 
         resp = sess.revoke_token(
-            "https://i.b/token", "hi", token_type_hint="access_token"
+            "https://provider.test/token", "hi", token_type_hint="access_token"
         )
         assert resp.json() == answer
 
@@ -366,4 +368,4 @@ def test_request_without_token():
     transport = WSGITransport(MockDispatch())
     with OAuth2Client("a", transport=transport) as client:
         with pytest.raises(OAuthError):
-            client.get("https://i.b/token")
+            client.get("https://provider.test/token")

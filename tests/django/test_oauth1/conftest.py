@@ -52,7 +52,7 @@ def client(user, db):
         user_id=user.pk,
         client_id="client",
         client_secret="secret",
-        default_redirect_uri="https://a.b",
+        default_redirect_uri="https://client.test",
     )
     client.save()
     yield client

@@ -25,10 +25,10 @@ def test_register_remote_app():
         "dev",
         client_id="dev",
         client_secret="dev",
-        request_token_url="https://i.b/reqeust-token",
-        api_base_url="https://i.b/api",
-        access_token_url="https://i.b/token",
-        authorize_url="https://i.b/authorize",
+        request_token_url="https://provider.test/request-token",
+        api_base_url="https://resource.test/api",
+        access_token_url="https://provider.test/token",
+        authorize_url="https://provider.test/authorize",
     )
     assert oauth.dev.name == "dev"
     assert oauth.dev.client_id == "dev"
@@ -41,11 +41,11 @@ def test_register_with_overwrite():
         overwrite=True,
         client_id="dev",
         client_secret="dev",
-        request_token_url="https://i.b/reqeust-token",
-        api_base_url="https://i.b/api",
-        access_token_url="https://i.b/token",
+        request_token_url="https://provider.test/request-token",
+        api_base_url="https://resource.test/api",
+        access_token_url="https://provider.test/token",
         access_token_params={"foo": "foo"},
-        authorize_url="https://i.b/authorize",
+        authorize_url="https://provider.test/authorize",
     )
     assert oauth.dev_overwrite.client_id == "dev-client-id"
     assert oauth.dev_overwrite.access_token_params["foo"] == "foo-1"
@@ -68,10 +68,10 @@ def test_oauth1_authorize(factory):
         "dev",
         client_id="dev",
         client_secret="dev",
-        request_token_url="https://i.b/reqeust-token",
-        api_base_url="https://i.b/api",
-        access_token_url="https://i.b/token",
-        authorize_url="https://i.b/authorize",
+        request_token_url="https://provider.test/request-token",
+        api_base_url="https://resource.test/api",
+        access_token_url="https://provider.test/token",
+        authorize_url="https://provider.test/authorize",
     )
 
     with mock.patch("requests.sessions.Session.send") as send:
@@ -99,11 +99,11 @@ def test_oauth2_authorize(factory):
         "dev",
         client_id="dev",
         client_secret="dev",
-        api_base_url="https://i.b/api",
-        access_token_url="https://i.b/token",
-        authorize_url="https://i.b/authorize",
+        api_base_url="https://resource.test/api",
+        access_token_url="https://provider.test/token",
+        authorize_url="https://provider.test/authorize",
     )
-    rv = client.authorize_redirect(request, "https://a.b/c")
+    rv = client.authorize_redirect(request, "https://client.test/callback")
     assert rv.status_code == 302
     url = rv.get("Location")
     assert "state=" in url
@@ -124,9 +124,9 @@ def test_oauth2_authorize_access_denied(factory):
         "dev",
         client_id="dev",
         client_secret="dev",
-        api_base_url="https://i.b/api",
-        access_token_url="https://i.b/token",
-        authorize_url="https://i.b/authorize",
+        api_base_url="https://resource.test/api",
+        access_token_url="https://provider.test/token",
+        authorize_url="https://provider.test/authorize",
     )
 
     with mock.patch("requests.sessions.Session.send"):
@@ -144,12 +144,12 @@ def test_oauth2_authorize_code_challenge(factory):
     client = oauth.register(
         "dev",
         client_id="dev",
-        api_base_url="https://i.b/api",
-        access_token_url="https://i.b/token",
-        authorize_url="https://i.b/authorize",
+        api_base_url="https://resource.test/api",
+        access_token_url="https://provider.test/token",
+        authorize_url="https://provider.test/authorize",
         client_kwargs={"code_challenge_method": "S256"},
     )
-    rv = client.authorize_redirect(request, "https://a.b/c")
+    rv = client.authorize_redirect(request, "https://client.test/callback")
     assert rv.status_code == 302
     url = rv.get("Location")
     assert "state=" in url
@@ -178,15 +178,18 @@ def test_oauth2_authorize_code_verifier(factory):
     client = oauth.register(
         "dev",
         client_id="dev",
-        api_base_url="https://i.b/api",
-        access_token_url="https://i.b/token",
-        authorize_url="https://i.b/authorize",
+        api_base_url="https://resource.test/api",
+        access_token_url="https://provider.test/token",
+        authorize_url="https://provider.test/authorize",
         client_kwargs={"code_challenge_method": "S256"},
     )
     state = "foo"
     code_verifier = "bar"
     rv = client.authorize_redirect(
-        request, "https://a.b/c", state=state, code_verifier=code_verifier
+        request,
+        "https://client.test/callback",
+        state=state,
+        code_verifier=code_verifier,
     )
     assert rv.status_code == 302
     url = rv.get("Location")
@@ -213,13 +216,13 @@ def test_openid_authorize(factory):
         "dev",
         client_id="dev",
         jwks={"keys": [secret_key.as_dict()]},
-        api_base_url="https://i.b/api",
-        access_token_url="https://i.b/token",
-        authorize_url="https://i.b/authorize",
+        api_base_url="https://resource.test/api",
+        access_token_url="https://provider.test/token",
+        authorize_url="https://provider.test/authorize",
         client_kwargs={"scope": "openid profile"},
     )
 
-    resp = client.authorize_redirect(request, "https://b.com/bar")
+    resp = client.authorize_redirect(request, "https://client.test/callback")
     assert resp.status_code == 302
     url = resp.get("Location")
     assert "nonce=" in url
@@ -231,7 +234,7 @@ def test_openid_authorize(factory):
         {"sub": "123"},
         secret_key,
         alg="HS256",
-        iss="https://i.b",
+        iss="https://provider.test",
         aud="dev",
         exp=3600,
         nonce=query_data["nonce"],
@@ -255,9 +258,9 @@ def test_oauth2_access_token_with_post(factory):
         "dev",
         client_id="dev",
         client_secret="dev",
-        api_base_url="https://i.b/api",
-        access_token_url="https://i.b/token",
-        authorize_url="https://i.b/authorize",
+        api_base_url="https://resource.test/api",
+        access_token_url="https://provider.test/token",
+        authorize_url="https://provider.test/authorize",
     )
     payload = {"code": "a", "state": "b"}
 
@@ -279,9 +282,9 @@ def test_with_fetch_token_in_oauth(factory):
         "dev",
         client_id="dev",
         client_secret="dev",
-        api_base_url="https://i.b/api",
-        access_token_url="https://i.b/token",
-        authorize_url="https://i.b/authorize",
+        api_base_url="https://resource.test/api",
+        access_token_url="https://provider.test/token",
+        authorize_url="https://provider.test/authorize",
     )
 
     def fake_send(sess, req, **kwargs):
@@ -302,9 +305,9 @@ def test_with_fetch_token_in_register(factory):
         "dev",
         client_id="dev",
         client_secret="dev",
-        api_base_url="https://i.b/api",
-        access_token_url="https://i.b/token",
-        authorize_url="https://i.b/authorize",
+        api_base_url="https://resource.test/api",
+        access_token_url="https://provider.test/token",
+        authorize_url="https://provider.test/authorize",
         fetch_token=fetch_token,
     )
 
@@ -323,9 +326,9 @@ def test_request_without_token():
         "dev",
         client_id="dev",
         client_secret="dev",
-        api_base_url="https://i.b/api",
-        access_token_url="https://i.b/token",
-        authorize_url="https://i.b/authorize",
+        api_base_url="https://resource.test/api",
+        access_token_url="https://provider.test/token",
+        authorize_url="https://provider.test/authorize",
     )
 
     def fake_send(sess, req, **kwargs):
@@ -340,4 +343,4 @@ def test_request_without_token():
         resp = client.get("/api/user", withhold_token=True)
         assert resp.text == "hi"
         with pytest.raises(OAuthError):
-            client.get("https://i.b/api/user")
+            client.get("https://resource.test/api/user")

@@ -35,7 +35,7 @@ def client(client, db):
     client.set_client_metadata(
         {
             "scope": "profile",
-            "redirect_uris": ["http://localhost/authorized"],
+            "redirect_uris": ["https://client.test/authorized"],
             "grant_types": [JWTBearerGrant.GRANT_TYPE],
         }
     )
@@ -57,7 +57,7 @@ def test_invalid_assertion(test_client):
     assertion = JWTBearerGrant.sign(
         "foo",
         issuer="client-id",
-        audience="https://i.b/token",
+        audience="https://provider.test/token",
         subject="none",
         header={"alg": "HS256", "kid": "1"},
     )
@@ -73,7 +73,7 @@ def test_authorize_token(test_client):
     assertion = JWTBearerGrant.sign(
         "foo",
         issuer="client-id",
-        audience="https://i.b/token",
+        audience="https://provider.test/token",
         subject=None,
         header={"alg": "HS256", "kid": "1"},
     )
@@ -89,7 +89,7 @@ def test_unauthorized_client(test_client, client):
     client.set_client_metadata(
         {
             "scope": "profile",
-            "redirect_uris": ["http://localhost/authorized"],
+            "redirect_uris": ["https://client.test/authorized"],
             "grant_types": ["password"],
         }
     )
@@ -99,7 +99,7 @@ def test_unauthorized_client(test_client, client):
     assertion = JWTBearerGrant.sign(
         "bar",
         issuer="client-id",
-        audience="https://i.b/token",
+        audience="https://provider.test/token",
         subject=None,
         header={"alg": "HS256", "kid": "2"},
     )
@@ -118,7 +118,7 @@ def test_token_generator(test_client, app, server):
     assertion = JWTBearerGrant.sign(
         "foo",
         issuer="client-id",
-        audience="https://i.b/token",
+        audience="https://provider.test/token",
         subject=None,
         header={"alg": "HS256", "kid": "1"},
     )
@@ -139,7 +139,7 @@ def test_jwt_bearer_token_generator(test_client, server):
     assertion = JWTBearerGrant.sign(
         "foo",
         issuer="client-id",
-        audience="https://i.b/token",
+        audience="https://provider.test/token",
         subject=None,
         header={"alg": "HS256", "kid": "1"},
     )

@@ -28,7 +28,7 @@ class MyIntrospectionEndpoint(IntrospectionEndpoint):
             "scope": token.scope,
             "sub": user.get_user_id(),
             "aud": token.client_id,
-            "iss": "https://server.example.com/",
+            "iss": "https://provider.test/",
             "exp": token.issued_at + token.expires_in,
             "iat": token.issued_at,
         }
@@ -50,7 +50,7 @@ def client(client, db):
     client.set_client_metadata(
         {
             "scope": "profile",
-            "redirect_uris": ["http://a.b/c"],
+            "redirect_uris": ["https://client.test/callback"],
         }
     )
     db.session.add(client)
