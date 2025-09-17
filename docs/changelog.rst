@@ -9,10 +9,11 @@ Here you can see the full list of changes between each Authlib release.
 Version 1.6.4
 -------------
 
-**Unreleased**
+**Released on Sep 17, 2025**
 
 - Fix ``InsecureTransportError`` error raising. :issue:`795`
 - Fix ``response_mode=form_post`` with Starlette client. :issue:`793`
+- Validate ``crit`` header value, reject unprotected header in ``crit`` header.
 
 Version 1.6.3
 -------------
