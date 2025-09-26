@@ -48,11 +48,11 @@ def test_parse_implicit_response():
 
 def test_prepare_grant_uri():
     grant_uri = parameters.prepare_grant_uri(
-        "https://provider.test/authorize", "dev", "code", max_age=0
+        "https://provider.test/authorize", "dev", "code", max_age=0, resource=["a", "b"]
     )
     assert (
         grant_uri
-        == "https://provider.test/authorize?response_type=code&client_id=dev&max_age=0"
+        == "https://provider.test/authorize?response_type=code&client_id=dev&max_age=0&resource=a&resource=b"
     )
 
 
