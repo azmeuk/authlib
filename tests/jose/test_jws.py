@@ -297,3 +297,20 @@ def test_ES256K_alg():
     header, payload = data["header"], data["payload"]
     assert payload == b"hello"
     assert header["alg"] == "ES256K"
+
+
+def test_deserialize_exceeds_length():
+    jws = JsonWebSignature()
+    value = "aa" * 256000
+
+    # header exceeds length
+    with pytest.raises(ValueError):
+        jws.deserialize(value + "." + value + "." + value, "")
+
+    # payload exceeds length
+    with pytest.raises(ValueError):
+        jws.deserialize("eyJhbGciOiJIUzI1NiJ9." + value + "." + value, "")
+
+    # signature exceeds length
+    with pytest.raises(ValueError):
+        jws.deserialize("eyJhbGciOiJIUzI1NiJ9.YQ." + value, "")
