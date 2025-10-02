@@ -9,9 +9,11 @@ Here you can see the full list of changes between each Authlib release.
 Version 1.6.5
 -------------
 
-**Unreleased**
+**Released on Oct 2, 2025**
 
 - RFC7591 ``generate_client_info`` and ``generate_client_secret`` take a ``request`` parameter.
+- Add size limitation when decode JWS/JWE to prevent DoS.
+- Add size limitation for ``DEF`` JWE zip algorithm.
 
 Version 1.6.4
 -------------
