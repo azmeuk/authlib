@@ -4,6 +4,7 @@ from authlib.consts import default_json_headers
 from authlib.jose import jwt
 from authlib.oauth2.rfc6749.authorization_server import AuthorizationServer
 from authlib.oauth2.rfc6749.authorization_server import OAuth2Request
+from authlib.oauth2.rfc6749.models import ClientMixin
 from authlib.oauth2.rfc6749.resource_protector import ResourceProtector
 
 from .claims import UserInfo
@@ -64,7 +65,7 @@ class UserInfoEndpoint:
         token = self.resource_protector.acquire_token("openid")
         client = token.get_client()
         user = token.get_user()
-        user_info = self.generate_user_info(user, token.scope)
+        user_info = self.generate_user_info(user, token.get_scope())
 
         if alg := client.client_metadata.get("userinfo_signed_response_alg"):
             # If signed, the UserInfo Response MUST contain the Claims iss
@@ -118,3 +119,11 @@ class UserInfoEndpoint:
         This method must be implemented by developers to support JWT userinfo signing.
         """
         return None  # pragma: no cover
+
+    def get_client(self, access_token) -> ClientMixin:
+        """Get the client associated with an access token."""
+        raise NotImplementedError()
+
+    def get_user(self, access_token):
+        """Get the user associated with an access token."""
+        raise NotImplementedError()

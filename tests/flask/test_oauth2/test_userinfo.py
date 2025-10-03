@@ -1,13 +1,20 @@
+import time
+
 import pytest
 from flask import json
 
 import authlib.oidc.core as oidc_core
+from authlib.common.security import generate_token
+from authlib.integrations.flask_oauth2 import AuthorizationServer
 from authlib.integrations.flask_oauth2 import ResourceProtector
 from authlib.integrations.sqla_oauth2 import create_bearer_token_validator
 from authlib.jose import jwt
+from authlib.oauth2.rfc9068 import JWTBearerTokenValidator
 from tests.util import read_file_path
 
+from .models import Client
 from .models import Token
+from .models import User
 
 
 @pytest.fixture(autouse=True)
@@ -324,3 +331,80 @@ def test_scope_signed_secured(test_client, client, token, db):
         "email": "janedoe@example.com",
         "email_verified": True,
     }
+
+
+def test_userinfo_with_rfc9068_jwt_token(app, test_client, db, client):
+    """Test that RFC9068 JWT access tokens can be used with the UserInfo endpoint.
+
+    This test verifies that when using RFC9068 JWT access tokens, the UserInfo
+    endpoint can successfully resolve the client and user through the resolver
+    methods implemented in JWTBearerTokenValidator.
+    """
+    issuer = "https://provider.test"
+    resource_server = "https://resource.test"
+
+    now = int(time.time())
+    claims = {
+        "iss": issuer,
+        "exp": now + 3600,
+        "aud": resource_server,
+        "sub": "1",
+        "client_id": "client-id",
+        "iat": now,
+        "jti": generate_token(16),
+        "scope": "openid profile email",
+    }
+
+    jwks = read_file_path("jwks_private.json")
+    access_token = jwt.encode(
+        {"alg": "RS256", "typ": "at+jwt"},
+        claims,
+        key=jwks,
+        check=False,
+    )
+
+    class MyJWTBearerTokenValidator(JWTBearerTokenValidator):
+        """Custom JWT validator with client and user resolvers."""
+
+        def get_jwks(self):
+            return read_file_path("jwks_private.json")
+
+        def resolve_client(self, client_id):
+            return db.session.query(Client).filter_by(client_id=client_id).first()
+
+        def resolve_user(self, user_id):
+            return db.session.query(User).filter_by(id=int(user_id)).first()
+
+    jwt_validator = MyJWTBearerTokenValidator(
+        issuer=issuer, resource_server=resource_server
+    )
+    resource_protector = ResourceProtector()
+    resource_protector.register_token_validator(jwt_validator)
+
+    class UserInfoEndpoint(oidc_core.UserInfoEndpoint):
+        """UserInfo endpoint configured for JWT token validation."""
+
+        def get_issuer(self) -> str:
+            return "https://provider.test"
+
+        def generate_user_info(self, user, scope):
+            return user.generate_user_info().filter(scope)
+
+        def resolve_private_key(self):
+            return read_file_path("jwks_private.json")
+
+    server = AuthorizationServer()
+    server.register_endpoint(UserInfoEndpoint(resource_protector=resource_protector))
+
+    @app.route("/oauth/userinfo-jwt", methods=["GET", "POST"])
+    def userinfo_jwt():
+        return server.create_endpoint_response("userinfo")
+
+    headers = {"Authorization": f"Bearer {access_token.decode()}"}
+    rv = test_client.get("/oauth/userinfo-jwt", headers=headers)
+
+    assert rv.status_code == 200
+    resp = json.loads(rv.data)
+    assert resp["sub"] == "1"
+    assert resp["email"] == "janedoe@example.com"
+    assert resp["name"] == "foo"
