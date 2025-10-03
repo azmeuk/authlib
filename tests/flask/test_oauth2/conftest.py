@@ -6,6 +6,7 @@ from flask import Flask
 from tests.flask.test_oauth2.oauth2_server import create_authorization_server
 
 from .models import Client
+from .models import Token
 from .models import User
 
 
@@ -83,3 +84,20 @@ def client(db, user):
 @pytest.fixture
 def server(app):
     return create_authorization_server(app)
+
+
+@pytest.fixture
+def token(db):
+    token = Token(
+        user_id=1,
+        client_id="client-id",
+        token_type="bearer",
+        access_token="a1",
+        refresh_token="r1",
+        scope="profile",
+        expires_in=3600,
+    )
+    db.session.add(token)
+    db.session.commit()
+    yield token
+    db.session.delete(token)

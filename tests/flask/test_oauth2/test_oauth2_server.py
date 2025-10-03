@@ -85,23 +85,7 @@ def test_authorization_none_grant(test_client):
     assert data["error"] == "unsupported_grant_type"
 
 
-@pytest.fixture(autouse=True)
-def token(db):
-    token = Token(
-        user_id=1,
-        client_id="client-id",
-        token_type="bearer",
-        access_token="a1",
-        scope="profile",
-        expires_in=3600,
-    )
-    db.session.add(token)
-    db.session.commit()
-    yield token
-    db.session.delete(token)
-
-
-def test_invalid_token(test_client):
+def test_invalid_token(test_client, token):
     rv = test_client.get("/user")
     assert rv.status_code == 401
     resp = json.loads(rv.data)
@@ -136,7 +120,7 @@ def test_expired_token(test_client, db, token):
     assert rv.status_code == 401
 
 
-def test_insufficient_token(test_client):
+def test_insufficient_token(test_client, token):
     headers = create_bearer_header("a1")
     rv = test_client.get("/user/email", headers=headers)
     assert rv.status_code == 403
@@ -144,7 +128,7 @@ def test_insufficient_token(test_client):
     assert resp["error"] == "insufficient_scope"
 
 
-def test_access_resource(test_client):
+def test_access_resource(test_client, token):
     headers = create_bearer_header("a1")
 
     rv = test_client.get("/user", headers=headers)
@@ -160,7 +144,7 @@ def test_access_resource(test_client):
     assert resp["status"] == "ok"
 
 
-def test_scope_operator(test_client):
+def test_scope_operator(test_client, token):
     headers = create_bearer_header("a1")
     rv = test_client.get("/operator-and", headers=headers)
     assert rv.status_code == 403
@@ -171,7 +155,7 @@ def test_scope_operator(test_client):
     assert rv.status_code == 200
 
 
-def test_optional_token(test_client):
+def test_optional_token(test_client, token):
     rv = test_client.get("/optional")
     assert rv.status_code == 200
     resp = json.loads(rv.data)

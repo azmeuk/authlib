@@ -83,23 +83,6 @@ def client(client, db):
     return client
 
 
-@pytest.fixture(autouse=True)
-def token(db, user, client):
-    token = Token(
-        user_id=user.id,
-        client_id=client.id,
-        token_type="bearer",
-        access_token="a1",
-        refresh_token="r1",
-        scope="openid profile",
-        expires_in=3600,
-    )
-    db.session.add(token)
-    db.session.commit()
-    yield token
-    db.session.delete(token)
-
-
 def test_read_client(test_client, client, token):
     assert client.client_name == "Authlib"
     headers = {"Authorization": f"bearer {token.access_token}"}

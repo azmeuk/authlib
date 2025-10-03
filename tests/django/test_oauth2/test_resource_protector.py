@@ -26,21 +26,6 @@ def client(user):
     client.delete()
 
 
-@pytest.fixture
-def token(user, client):
-    token = OAuth2Token(
-        user_id=user.pk,
-        client_id=client.client_id,
-        token_type="bearer",
-        access_token="a1",
-        scope="profile",
-        expires_in=3600,
-    )
-    token.save()
-    yield token
-    token.delete()
-
-
 def test_invalid_token(factory):
     @require_oauth("profile")
     def get_user_profile(request):

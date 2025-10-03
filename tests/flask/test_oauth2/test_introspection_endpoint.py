@@ -58,23 +58,6 @@ def client(client, db):
     return client
 
 
-@pytest.fixture
-def token(db):
-    token = Token(
-        user_id=1,
-        client_id="client-id",
-        token_type="bearer",
-        access_token="a1",
-        refresh_token="r1",
-        scope="profile",
-        expires_in=3600,
-    )
-    db.session.add(token)
-    db.session.commit()
-    yield db
-    db.session.delete(token)
-
-
 def test_invalid_client(test_client):
     rv = test_client.post("/oauth/introspect")
     resp = json.loads(rv.data)
