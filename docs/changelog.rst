@@ -57,11 +57,15 @@ Version 1.6.0
 
 - Fix issue when :rfc:`RFC9207 <9207>` is enabled and the authorization endpoint response is not a redirection. :pr:`733`
 - Fix missing ``state`` parameter in authorization error responses. :issue:`525`
-- Support for ``acr`` and ``amr`` claims in ``id_token``. :issue:`734`
 - Support for the ``none`` JWS algorithm.
 - Fix ``response_types`` strict order during dynamic client registration. :issue:`760`
 - Implement :rfc:`RFC9101 The OAuth 2.0 Authorization Framework: JWT-Secured Authorization Request (JAR) <9101>`. :issue:`723`
 - OIDC :class:`UserInfo endpoint <authlib.oidc.core.userinfo.UserInfoEndpoint>` support. :issue:`459`
+
+**Breaking changes**:
+
+- Support for ``acr`` and ``amr`` claims in ``id_token``. :issue:`734`
+  The ``OAuth2AuthorizationCodeMixin`` must have a migration to support the new fields.
 
 Version 1.5.2
 -------------
