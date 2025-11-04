@@ -159,24 +159,13 @@ Self-Signed Certificate
 Self-signed certificate mutual-TLS method internet standard is defined in
 `RFC8705 Section 2.2`_ .
 
-For specifics development purposes only, you may need to
-**disable SSL verification**.
+You can use the environment variables CURL_CA_BUNDLE and REQUESTS_CA_BUNDLE
+to specify a CA certificate file for validating your self-signed certificate.
 
-You can force all requests to disable SSL verification by setting
-your environment variable ``CURL_CA_BUNDLE=""``.
+.. code-block:: bash
 
-This solutions works because Python requests (and most of the packages)
-overwrites the default value for ssl verifications from environment
-variables ``CURL_CA_BUNDLE`` and ``REQUESTS_CA_BUNDLE``.
-
-This hack will **only work** with ``CURL_CA_BUNDLE``, as you can see
-in `requests/sessions.py`_ ::
-
-    verify = (os.environ.get('REQUESTS_CA_BUNDLE')
-    or os.environ.get('CURL_CA_BUNDLE'))
+    REQUESTS_CA_BUNDLE=/path/to/ca-cert.pem
 
 Please remember to set the env variable only in you development environment.
 
-
 .. _RFC8705 Section 2.2: https://tools.ietf.org/html/rfc8705#section-2.2
-.. _requests/sessions.py: https://github.com/requests/requests/blob/master/requests/sessions.py#L706
