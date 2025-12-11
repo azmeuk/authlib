@@ -15,6 +15,7 @@ from authlib.oidc.core import CodeIDToken
 from authlib.oidc.core.grants import OpenIDCode as _OpenIDCode
 from tests.util import read_file_path
 
+from .models import Client
 from .models import CodeGrantMixin
 from .models import exists_nonce
 from .models import save_authorization_code
@@ -54,7 +55,7 @@ def register_oidc_code_grant(server, require_nonce=False):
             return save_authorization_code(code, request)
 
     class OpenIDCode(_OpenIDCode):
-        def get_jwt_config(self, grant):
+        def get_jwt_config(self, grant, client):
             key = current_app.config.get("OAUTH2_JWT_KEY")
             alg = current_app.config.get("OAUTH2_JWT_ALG")
             iss = current_app.config.get("OAUTH2_JWT_ISS")
@@ -419,3 +420,64 @@ def test_authorize_token_algs(test_client, server, app, alg, private_key, public
         claims_options={"iss": {"value": "Authlib"}},
     )
     claims.validate()
+
+
+def test_deprecated_get_jwt_config_signature(test_client, server, db, user):
+    """Using the old get_jwt_config(self, grant) signature should emit a DeprecationWarning."""
+
+    class DeprecatedOpenIDCode(_OpenIDCode):
+        def get_jwt_config(self, grant):
+            return {"key": "secret", "alg": "HS256", "iss": "Authlib", "exp": 3600}
+
+        def exists_nonce(self, nonce, request):
+            return exists_nonce(nonce, request)
+
+        def generate_user_info(self, user, scopes):
+            return user.generate_user_info(scopes)
+
+    class AuthorizationCodeGrant(CodeGrantMixin, _AuthorizationCodeGrant):
+        def save_authorization_code(self, code, request):
+            return save_authorization_code(code, request)
+
+    server.register_grant(AuthorizationCodeGrant, [DeprecatedOpenIDCode()])
+
+    client = Client(
+        user_id=user.id,
+        client_id="deprecated-client",
+        client_secret="secret",
+    )
+    client.set_client_metadata(
+        {
+            "redirect_uris": ["https://client.test"],
+            "scope": "openid profile",
+            "response_types": ["code"],
+            "grant_types": ["authorization_code"],
+        }
+    )
+    db.session.add(client)
+    db.session.commit()
+
+    rv = test_client.post(
+        "/oauth/authorize",
+        data={
+            "response_type": "code",
+            "client_id": "deprecated-client",
+            "state": "bar",
+            "scope": "openid profile",
+            "redirect_uri": "https://client.test",
+            "user_id": "1",
+        },
+    )
+    params = dict(url_decode(urlparse.urlparse(rv.location).query))
+    code = params["code"]
+
+    with pytest.warns(DeprecationWarning, match="get_jwt_config.*version 1.8"):
+        test_client.post(
+            "/oauth/token",
+            data={
+                "grant_type": "authorization_code",
+                "redirect_uri": "https://client.test",
+                "code": code,
+            },
+            headers=create_basic_header("deprecated-client", "secret"),
+        )

@@ -26,7 +26,7 @@ def client(client, db):
 
 
 class IDToken(OpenIDToken):
-    def get_jwt_config(self, grant):
+    def get_jwt_config(self, grant, client):
         return {
             "iss": "Authlib",
             "key": "secret",

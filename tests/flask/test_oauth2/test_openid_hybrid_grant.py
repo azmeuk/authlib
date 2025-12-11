@@ -26,7 +26,7 @@ def server(server):
             return save_authorization_code(code, request)
 
     class OpenIDCode(_OpenIDCode):
-        def get_jwt_config(self, grant):
+        def get_jwt_config(self, grant, client):
             return dict(JWT_CONFIG)
 
         def exists_nonce(self, nonce, request):
@@ -39,7 +39,7 @@ def server(server):
         def save_authorization_code(self, code, request):
             return save_authorization_code(code, request)
 
-        def get_jwt_config(self):
+        def get_jwt_config(self, client):
             return dict(JWT_CONFIG)
 
         def exists_nonce(self, nonce, request):
