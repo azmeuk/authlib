@@ -6,6 +6,13 @@ Changelog
 
 Here you can see the full list of changes between each Authlib release.
 
+Version 1.6.6
+-------------
+
+**Released on Dec 11, 2025**
+
+- ``get_jwt_config`` takes a ``client`` parameter.
+
 Version 1.6.5
 -------------
 

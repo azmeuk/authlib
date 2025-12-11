@@ -8,6 +8,7 @@ per `Section 3.1`_.
 """
 
 import logging
+import warnings
 
 from authlib.oauth2.rfc6749 import OAuth2Request
 
@@ -20,7 +21,7 @@ log = logging.getLogger(__name__)
 
 
 class OpenIDToken:
-    def get_jwt_config(self, grant):  # pragma: no cover
+    def get_jwt_config(self, grant, client):  # pragma: no cover
         """Get the JWT configuration for OpenIDCode extension. The JWT
         configuration will be used to generate ``id_token``.
         If ``alg`` is undefined, the ``id_token_signed_response_alg`` client
@@ -29,15 +30,16 @@ class OpenIDToken:
         will be used.
         Developers MUST implement this method in subclass, e.g.::
 
-            def get_jwt_config(self, grant):
+            def get_jwt_config(self, grant, client):
                 return {
                     "key": read_private_key_file(key_path),
-                    "alg": "RS256",
+                    "alg": client.id_token_signed_response_alg or "RS256",
                     "iss": "issuer-identity",
                     "exp": 3600,
                 }
 
         :param grant: AuthorizationCodeGrant instance
+        :param client: OAuth2 client instance
         :return: dict
         """
         raise NotImplementedError()
@@ -78,7 +80,17 @@ class OpenIDToken:
         request: OAuth2Request = grant.request
         authorization_code = request.authorization_code
 
-        config = self.get_jwt_config(grant)
+        try:
+            config = self.get_jwt_config(grant, request.client)
+        except TypeError:
+            warnings.warn(
+                "get_jwt_config(self, grant) is deprecated and will be removed in version 1.8. "
+                "Use get_jwt_config(self, grant, client) instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            config = self.get_jwt_config(grant)
+
         config["aud"] = self.get_audiences(request)
 
         # Per OpenID Connect Registration 1.0 Section 2:
