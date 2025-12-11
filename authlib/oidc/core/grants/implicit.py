@@ -151,9 +151,7 @@ class OpenIDImplicitGrant(ImplicitGrant):
 
         # Per OpenID Connect Registration 1.0 Section 2:
         # Use client's id_token_signed_response_alg if specified
-        if not config.get("alg") and (
-            client_alg := self.request.client.id_token_signed_response_alg
-        ):
+        if client_alg := self.request.client.id_token_signed_response_alg:
             if client_alg == "none":
                 # According to oidc-registration §2 the 'none' alg is not valid in
                 # implicit flows:

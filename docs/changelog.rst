@@ -6,6 +6,16 @@ Changelog
 
 Here you can see the full list of changes between each Authlib release.
 
+Version 1.7.0
+-------------
+
+**Unreleased**
+
+**Breaking changes**:
+
+- Client ``id_token_signed_response_alg`` metadata now takes precedence over server
+  ``get_jwt_config()`` when signing ``id_token``. :issue:`806`
+
 Version 1.6.5
 -------------
 
