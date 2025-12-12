@@ -5,9 +5,12 @@ from authlib.common.urls import add_params_to_uri
 from authlib.common.urls import url_decode
 from authlib.common.urls import urlparse
 from authlib.jose import JsonWebToken
+from authlib.oauth2.rfc6749.requests import BasicOAuth2Payload
+from authlib.oauth2.rfc6749.requests import OAuth2Request
 from authlib.oidc.core import ImplicitIDToken
 from authlib.oidc.core.grants import OpenIDImplicitGrant as _OpenIDImplicitGrant
 
+from .models import Client
 from .models import exists_nonce
 
 authorize_url = "/oauth/authorize?response_type=token&client_id=client-id"
@@ -16,7 +19,7 @@ authorize_url = "/oauth/authorize?response_type=token&client_id=client-id"
 @pytest.fixture(autouse=True)
 def server(server):
     class OpenIDImplicitGrant(_OpenIDImplicitGrant):
-        def get_jwt_config(self):
+        def get_jwt_config(self, client):
             alg = current_app.config.get("OAUTH2_JWT_ALG", "HS256")
             return dict(key="secret", alg=alg, iss="Authlib", exp=3600)
 
@@ -259,3 +262,42 @@ def test_client_metadata_alg_none(test_client, app, db, client):
     )
     params = dict(url_decode(urlparse.urlparse(rv.location).fragment))
     assert params["error"] == "invalid_request"
+
+
+def test_deprecated_get_jwt_config_signature(user):
+    """Using the old get_jwt_config(self) signature should emit a DeprecationWarning."""
+
+    class DeprecatedImplicitGrant(_OpenIDImplicitGrant):
+        def get_jwt_config(self):
+            return {"key": "secret", "alg": "HS256", "iss": "Authlib", "exp": 3600}
+
+        def generate_user_info(self, user, scopes):
+            return user.generate_user_info(scopes)
+
+        def exists_nonce(self, nonce, request):
+            return exists_nonce(nonce, request)
+
+    client = Client(
+        user_id=user.id,
+        client_id="deprecated-client",
+        client_secret="secret",
+    )
+    client.set_client_metadata(
+        {
+            "redirect_uris": ["https://client.test/callback"],
+            "scope": "openid profile",
+            "token_endpoint_auth_method": "none",
+            "response_types": ["id_token"],
+        }
+    )
+
+    request = OAuth2Request("POST", "https://server.test/authorize")
+    request.payload = BasicOAuth2Payload({"nonce": "test-nonce"})
+    request.client = client
+    request.user = user
+
+    grant = DeprecatedImplicitGrant(request, client)
+    token = {"scope": "openid", "expires_in": 3600}
+
+    with pytest.warns(DeprecationWarning, match="get_jwt_config.*version 1.8"):
+        grant.process_implicit_token(token)

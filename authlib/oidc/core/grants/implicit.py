@@ -1,4 +1,5 @@
 import logging
+import warnings
 
 from authlib.oauth2.rfc6749 import AccessDeniedError
 from authlib.oauth2.rfc6749 import ImplicitGrant
@@ -36,19 +37,20 @@ class OpenIDImplicitGrant(ImplicitGrant):
         """
         raise NotImplementedError()
 
-    def get_jwt_config(self):
+    def get_jwt_config(self, client):
         """Get the JWT configuration for OpenIDImplicitGrant. The JWT
         configuration will be used to generate ``id_token``. Developers
         MUST implement this method in subclass, e.g.::
 
-            def get_jwt_config(self):
+            def get_jwt_config(self, client):
                 return {
                     "key": read_private_key_file(key_path),
-                    "alg": "RS256",
+                    "alg": client.id_token_signed_response_alg or "RS256",
                     "iss": "issuer-identity",
                     "exp": 3600,
                 }
 
+        :param client: OAuth2 client instance
         :return: dict
         """
         raise NotImplementedError()
@@ -143,7 +145,17 @@ class OpenIDImplicitGrant(ImplicitGrant):
         return params
 
     def process_implicit_token(self, token, code=None):
-        config = self.get_jwt_config()
+        try:
+            config = self.get_jwt_config(self.request.client)
+        except TypeError:
+            warnings.warn(
+                "get_jwt_config(self) is deprecated and will be removed in version 1.8. "
+                "Use get_jwt_config(self, client) instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            config = self.get_jwt_config()
+
         config["aud"] = self.get_audiences(self.request)
         config["nonce"] = self.request.payload.data.get("nonce")
         if code is not None:
