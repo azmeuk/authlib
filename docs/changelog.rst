@@ -9,9 +9,12 @@ Here you can see the full list of changes between each Authlib release.
 Version 1.6.6
 -------------
 
-**Released on Dec 11, 2025**
+**Released on Dec 12, 2025**
 
-- ``get_jwt_config`` takes a ``client`` parameter.
+- ``get_jwt_config`` takes a ``client`` parameter, :pr:`844`.
+- Fix incorrect signature when ``Content-Type`` is x-www-form-urlencoded for OAuth 1.0 Client, :pr:`778`.
+- Use ``expires_in`` in ``OAuth2Token`` when ``expires_at`` is unparsable, :pr:`842`.
+- Always track ``state`` in session for OAuth client integrations.
 
 Version 1.6.5
 -------------
