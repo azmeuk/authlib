@@ -150,9 +150,13 @@ def test_oauth1_authorize_cache():
             assert resp.status_code == 302
             url = resp.headers.get("Location")
             assert "oauth_token=foo" in url
+            session_data = session["_state_dev_foo"]
+            assert "exp" in session_data
+            assert "data" not in session_data
 
     with app.test_request_context("/?oauth_token=foo"):
         with mock.patch("requests.sessions.Session.send") as send:
+            session["_state_dev_foo"] = session_data
             send.return_value = mock_send_value("oauth_token=a&oauth_token_secret=b")
             token = client.authorize_access_token()
             assert token["oauth_token"] == "a"
@@ -207,7 +211,44 @@ def test_register_oauth2_remote_app():
     assert session.update_token is not None
 
 
-def test_oauth2_authorize():
+def test_oauth2_authorize_cache():
+    app = Flask(__name__)
+    app.secret_key = "!"
+    cache = SimpleCache()
+    oauth = OAuth(app, cache=cache)
+    client = oauth.register(
+        "dev",
+        client_id="dev",
+        client_secret="dev",
+        api_base_url="https://resource.test/api",
+        access_token_url="https://provider.test/token",
+        authorize_url="https://provider.test/authorize",
+    )
+    with app.test_request_context():
+        resp = client.authorize_redirect("https://client.test/callback")
+        assert resp.status_code == 302
+        url = resp.headers.get("Location")
+        assert "state=" in url
+        state = dict(url_decode(urlparse.urlparse(url).query))["state"]
+        assert state is not None
+        session_data = session[f"_state_dev_{state}"]
+        assert "exp" in session_data
+        assert "data" not in session_data
+
+    with app.test_request_context(path=f"/?code=a&state={state}"):
+        # session is cleared in tests
+        session[f"_state_dev_{state}"] = session_data
+
+        with mock.patch("requests.sessions.Session.send") as send:
+            send.return_value = mock_send_value(get_bearer_token())
+            token = client.authorize_access_token()
+            assert token["access_token"] == "a"
+
+    with app.test_request_context():
+        assert client.token is None
+
+
+def test_oauth2_authorize_session():
     app = Flask(__name__)
     app.secret_key = "!"
     oauth = OAuth(app)
@@ -227,11 +268,13 @@ def test_oauth2_authorize():
         assert "state=" in url
         state = dict(url_decode(urlparse.urlparse(url).query))["state"]
         assert state is not None
-        data = session[f"_state_dev_{state}"]
+        session_data = session[f"_state_dev_{state}"]
+        assert "exp" in session_data
+        assert "data" in session_data
 
     with app.test_request_context(path=f"/?code=a&state={state}"):
         # session is cleared in tests
-        session[f"_state_dev_{state}"] = data
+        session[f"_state_dev_{state}"] = session_data
 
         with mock.patch("requests.sessions.Session.send") as send:
             send.return_value = mock_send_value(get_bearer_token())
