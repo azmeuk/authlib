@@ -6,6 +6,15 @@ Changelog
 
 Here you can see the full list of changes between each Authlib release.
 
+Version 1.6.7
+-------------
+
+**Unreleased**
+
+- Per RFC 6749 Section 3.3, the ``scope`` parameter is now optional at both
+  authorization and token endpoints. ``client.get_allowed_scope()`` is called
+  to determine the default scope when omitted. :issue:`845`
+
 Version 1.6.6
 -------------
 
