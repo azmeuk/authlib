@@ -1,6 +1,4 @@
 import time
-from typing import Optional
-from typing import Union
 
 from authlib.common.security import generate_token
 from authlib.jose import jwt
@@ -63,7 +61,7 @@ class JWTBearerTokenGenerator(BearerTokenGenerator):
         """
         return {}
 
-    def get_audiences(self, client, user, scope) -> Union[str, list[str]]:
+    def get_audiences(self, client, user, scope) -> str | list[str]:
         """Return the audience for the token. By default this simply returns
         the client ID. Developers MAY re-implement this method to add extra
         audiences::
@@ -76,7 +74,7 @@ class JWTBearerTokenGenerator(BearerTokenGenerator):
         """
         return client.get_client_id()
 
-    def get_acr(self, user) -> Optional[str]:
+    def get_acr(self, user) -> str | None:
         """Authentication Context Class Reference.
         Returns a user-defined case sensitive string indicating the class of
         authentication the used performed. Token audience may refuse to give access to
@@ -94,7 +92,7 @@ class JWTBearerTokenGenerator(BearerTokenGenerator):
         """
         return None
 
-    def get_auth_time(self, user) -> Optional[int]:
+    def get_auth_time(self, user) -> int | None:
         """User authentication time.
         Time when the End-User authentication occurred. Its value is a JSON number
         representing the number of seconds from 1970-01-01T0:0:0Z as measured in UTC
@@ -105,7 +103,7 @@ class JWTBearerTokenGenerator(BearerTokenGenerator):
         """
         return None
 
-    def get_amr(self, user) -> Optional[list[str]]:
+    def get_amr(self, user) -> list[str] | None:
         """Authentication Methods References.
         Defined by :ref:`specs/oidc` as an option list of user-defined case-sensitive
         strings indication which authentication methods have been used to authenticate

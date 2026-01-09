@@ -14,6 +14,7 @@ Version 1.6.7
 - Per RFC 6749 Section 3.3, the ``scope`` parameter is now optional at both
   authorization and token endpoints. ``client.get_allowed_scope()`` is called
   to determine the default scope when omitted. :issue:`845`
+- Stop support for Python 3.9, start support Python 3.14. :pr:`850`
 
 Version 1.6.6
 -------------
