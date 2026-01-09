@@ -34,7 +34,7 @@ class ClientMetadataClaims(BaseClaims):
         self.validate_post_logout_redirect_uris()
 
     def validate_post_logout_redirect_uris(self):
-        """Array of URLs supplied by the RP to which it MAY request that the
+        """post_logout_redirect_uris is an array of URLs supplied by the RP to which it MAY request that the
         End-User's User Agent be redirected using the post_logout_redirect_uri
         parameter after a logout has been performed.
 

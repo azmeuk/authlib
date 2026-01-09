@@ -16,8 +16,11 @@ class EndSessionEndpoint:
     """OpenID Connect RP-Initiated Logout Endpoint.
 
     This endpoint allows a Relying Party to request that an OpenID Provider
-    log out the End-User. It must be subclassed and several methods need to
-    be implemented::
+    log out the End-User. It must be subclassed and Developers
+    MUST implement the missing methods::
+
+        from authlib.oidc.rpinitiated import EndSessionEndpoint
+
 
         class MyEndSessionEndpoint(EndSessionEndpoint):
             def get_client_by_id(self, client_id):
@@ -27,7 +30,7 @@ class EndSessionEndpoint:
                 return server_jwks().as_dict()
 
             def validate_id_token_claims(self, id_token_claims):
-                # Validate that the token was issued by this OP
+                # Validate that the token corresponds to an active session
                 if id_token_claims["sid"] not in current_sessions(
                     id_token_claims["aud"]
                 ):
@@ -39,7 +42,8 @@ class EndSessionEndpoint:
                 logout_user()
 
             def create_end_session_response(self, request):
-                # Create the response after successful logout when there is no valid redirect uri.
+                # Create the response after successful logout
+                # when there is no valid redirect uri
                 return 200, "You have been logged out.", []
 
             def create_confirmation_response(
@@ -57,20 +61,24 @@ class EndSessionEndpoint:
                     [("Content-Type", "text/html")],
                 )
 
-            def was_confirmation_given(self):
-                # Determine if a confirmation was given for logout
-                return session.get("logout_confirmation", False)
+    Register this endpoint and use it in routes::
 
-    Register the endpoint with the authorization server::
+        authorization_server.register_endpoint(MyEndSessionEndpoint())
 
-        server.register_endpoint(MyEndSessionEndpoint())
 
-    And plug it into your application::
-
+        # for Flask
         @app.route("/oauth/end_session", methods=["GET", "POST"])
         def end_session():
-            return server.create_endpoint_response("end_session")
+            return authorization_server.create_endpoint_response("end_session")
 
+
+        # for Django
+        from django.views.decorators.http import require_http_methods
+
+
+        @require_http_methods(["GET", "POST"])
+        def end_session(request):
+            return authorization_server.create_endpoint_response("end_session", request)
     """
 
     ENDPOINT_NAME = "end_session"
@@ -204,7 +212,7 @@ class EndSessionEndpoint:
     def get_server_jwks(self):
         """Get the JWK set used to validate ID tokens.
 
-        This method must be implemented by developers.
+        This method must be implemented by developers::
 
             def get_server_jwks(self):
                 return server_jwks().as_dict()
@@ -316,8 +324,7 @@ class EndSessionEndpoint:
     ):
         """Create a response asking the user to confirm logout.
 
-        This is called when id_token_hint is missing or invalid, or for other specific reasons determined by the OP
-        via the `is_confirmation_needed` function.
+        This is called when id_token_hint is missing or invalid, or for other specific reasons determined by the OP.
 
         Override to provide a confirmation UI::
 
@@ -347,7 +354,7 @@ class EndSessionEndpoint:
         """Determine if a confirmation was given for logout.
 
         The user can use this function to indicate that confirmation has been given
-        by the user and they are ready to log out.
+        by the user and they are ready to log out::
 
             def was_confirmation_given(self):
                 return session.get("logout_confirmation", False)
