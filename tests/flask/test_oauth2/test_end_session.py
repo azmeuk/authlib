@@ -3,6 +3,7 @@ import pytest
 from authlib.oidc.rpinitiated import EndSessionEndpoint
 from tests.util import read_file_path
 
+from .conftest import create_id_token
 from .models import Client
 from .models import db
 
@@ -227,3 +228,153 @@ def test_valid_id_token_with_redirect_succeeds_without_confirmation(
 
     assert rv.status_code == 302
     assert rv.headers["Location"] == "https://client.test/logout"
+
+
+def test_client_id_matches_aud_list(test_client, confirming_server, client):
+    """client_id should match when aud is a list containing it."""
+    id_token_with_aud_list = create_id_token(
+        {
+            "iss": "https://provider.test",
+            "sub": "user-1",
+            "aud": ["client-id", "other-client"],
+            "exp": 9999999999,
+            "iat": 1000000000,
+        }
+    )
+    rv = test_client.get(
+        f"/oauth/end_session?id_token_hint={id_token_with_aud_list}&client_id=client-id"
+    )
+
+    assert rv.status_code == 200
+    assert rv.data == b"Logged out"
+
+
+def test_client_id_mismatch_with_aud_list(test_client, confirming_server, client):
+    """client_id not in aud list should return error."""
+    id_token_with_aud_list = create_id_token(
+        {
+            "iss": "https://provider.test",
+            "sub": "user-1",
+            "aud": ["other-client-1", "other-client-2"],
+            "exp": 9999999999,
+            "iat": 1000000000,
+        }
+    )
+    rv = test_client.get(
+        f"/oauth/end_session?id_token_hint={id_token_with_aud_list}&client_id=client-id"
+    )
+
+    assert rv.status_code == 400
+    assert rv.json["error"] == "invalid_request"
+    assert rv.json["error_description"] == "'client_id' does not match 'aud' claim"
+
+
+def test_invalid_jwt(test_client, confirming_server, client):
+    """Invalid JWT should return error."""
+    rv = test_client.get("/oauth/end_session?id_token_hint=invalid.jwt.token")
+
+    assert rv.status_code == 400
+    assert rv.json["error"] == "invalid_request"
+
+
+def test_resolve_client_from_aud_list_returns_none(test_client, base_server, client):
+    """When aud is a list, resolve_client_from_id_token_claims returns None by default."""
+    id_token_with_aud_list = create_id_token(
+        {
+            "iss": "https://provider.test",
+            "sub": "user-1",
+            "aud": ["client-id", "other-client"],
+            "exp": 9999999999,
+            "iat": 1000000000,
+        }
+    )
+    # Without client_id parameter, client resolution from aud list returns None
+    # and redirect_uri validation fails (no client), so no redirect happens
+    rv = test_client.get(
+        f"/oauth/end_session_base?id_token_hint={id_token_with_aud_list}"
+        "&post_logout_redirect_uri=https://client.test/logout"
+    )
+
+    assert rv.status_code == 200
+    assert rv.data == b"Logged out"
+
+
+class DefaultConfirmationEndpoint(EndSessionEndpoint):
+    """Endpoint using default create_confirmation_response."""
+
+    def get_client_by_id(self, client_id):
+        return db.session.query(Client).filter_by(client_id=client_id).first()
+
+    def get_server_jwks(self):
+        return read_file_path("jwks_public.json")
+
+    def end_session(self, request, id_token_claims):
+        pass
+
+    def create_end_session_response(self, request):
+        return 200, "Logged out", [("Content-Type", "text/plain")]
+
+
+@pytest.fixture
+def default_confirmation_server(server, app, db):
+    endpoint = DefaultConfirmationEndpoint()
+    server.register_endpoint(endpoint)
+
+    @app.route("/oauth/end_session_default_confirm", methods=["GET", "POST"])
+    def end_session_default_confirm():
+        return server.create_endpoint_response("end_session")
+
+    return server
+
+
+def test_default_create_confirmation_response(
+    test_client, default_confirmation_server, client
+):
+    """Default create_confirmation_response should return 400 error."""
+    rv = test_client.get("/oauth/end_session_default_confirm")
+
+    assert rv.status_code == 400
+    assert rv.data == b"Logout confirmation required"
+
+
+class DefaultValidationEndpoint(EndSessionEndpoint):
+    """Endpoint using default validate_id_token_claims."""
+
+    def get_client_by_id(self, client_id):
+        return db.session.query(Client).filter_by(client_id=client_id).first()
+
+    def get_server_jwks(self):
+        return read_file_path("jwks_public.json")
+
+    def end_session(self, request, id_token_claims):
+        pass
+
+    def create_end_session_response(self, request):
+        return 200, "Logged out", [("Content-Type", "text/plain")]
+
+    def create_confirmation_response(self, request, client, redirect_uri, ui_locales):
+        return 200, "Confirm logout", [("Content-Type", "text/plain")]
+
+
+@pytest.fixture
+def default_validation_server(server, app, db):
+    endpoint = DefaultValidationEndpoint()
+    server.register_endpoint(endpoint)
+
+    @app.route("/oauth/end_session_default_validation", methods=["GET", "POST"])
+    def end_session_default_validation():
+        return server.create_endpoint_response("end_session")
+
+    return server
+
+
+def test_default_validate_id_token_claims(
+    test_client, default_validation_server, client, id_token
+):
+    """Default validate_id_token_claims should accept any valid JWT."""
+    rv = test_client.get(
+        f"/oauth/end_session_default_validation?id_token_hint={id_token}"
+    )
+
+    assert rv.status_code == 200
+    assert rv.data == b"Logged out"
