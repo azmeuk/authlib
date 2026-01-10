@@ -1,5 +1,3 @@
-from typing import Optional
-
 from authlib.consts import default_json_headers
 from authlib.jose import jwt
 from authlib.oauth2.rfc6749.authorization_server import AuthorizationServer
@@ -51,8 +49,8 @@ class UserInfoEndpoint:
 
     def __init__(
         self,
-        server: Optional[AuthorizationServer] = None,
-        resource_protector: Optional[ResourceProtector] = None,
+        server: AuthorizationServer | None = None,
+        resource_protector: ResourceProtector | None = None,
     ):
         self.server = server
         self.resource_protector = resource_protector
