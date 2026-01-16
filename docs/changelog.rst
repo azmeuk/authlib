@@ -16,6 +16,7 @@ Version 1.6.7
   to determine the default scope when omitted. :issue:`845`
 - Stop support for Python 3.9, start support Python 3.14. :pr:`850`
 - Allow ``AuthorizationServerMetadata.validate()`` to compose with RFC extension classes.
+- Fix ``expires_at=0`` being incorrectly treated as ``None``. :issue:`530`
 - Allow ``ResourceProtector`` decorator to be used without parentheses. :issue:`604`
 
 Version 1.6.6
