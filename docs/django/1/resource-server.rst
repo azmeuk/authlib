@@ -11,7 +11,7 @@ server. Here is the way to protect your users' resources::
     from authlib.integrations.django_oauth1 import ResourceProtector
     require_oauth = ResourceProtector(Client, TokenCredential)
 
-    @require_oauth()
+    @require_oauth
     def user_api(request):
         user = request.oauth1_credential.user
         return JsonResponse(dict(username=user.username))
