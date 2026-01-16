@@ -3,8 +3,6 @@
 https://openid.net/specs/openid-connect-rpinitiated-1_0.html
 """
 
-from typing import Optional
-
 from authlib.common.urls import add_params_to_uri
 from authlib.jose import jwt
 from authlib.jose.errors import JoseError
@@ -66,19 +64,9 @@ class EndSessionEndpoint:
         authorization_server.register_endpoint(MyEndSessionEndpoint())
 
 
-        # for Flask
         @app.route("/oauth/end_session", methods=["GET", "POST"])
         def end_session():
             return authorization_server.create_endpoint_response("end_session")
-
-
-        # for Django
-        from django.views.decorators.http import require_http_methods
-
-
-        @require_http_methods(["GET", "POST"])
-        def end_session(request):
-            return authorization_server.create_endpoint_response("end_session", request)
     """
 
     ENDPOINT_NAME = "end_session"
@@ -240,8 +228,13 @@ class EndSessionEndpoint:
         return True
 
     def _validate_id_token_hint(self, id_token_hint):
-        """When an id_token_hint parameter is present, the OP MUST validate that it was the issuer
-        of the ID Token."""
+        """Validate that the OP was the issuer of the ID Token.
+
+        Per the specification, expired tokens are accepted: "The OP SHOULD
+        accept ID Tokens when the RP identified by the ID Token's aud claim
+        and/or sid claim has a current session or had a recent session at
+        the OP, even when the exp time has passed."
+        """
         try:
             claims = jwt.decode(
                 id_token_hint,
@@ -253,10 +246,12 @@ class EndSessionEndpoint:
         except JoseError as exc:
             raise InvalidRequestError(exc.description) from exc
 
-    def end_session(self, request: OAuth2Request, id_token_claims: Optional[dict]):
+    def end_session(self, request: OAuth2Request, id_token_claims: dict | None):
         """Perform the actual session termination.
 
-        This method must be implemented by developers::
+        This method must be implemented by developers. Note that logout
+        requests are intended to be idempotent: it is not an error if the
+        End-User is not logged in at the OP::
 
             def end_session(self, request, id_token_claims):
                 # Terminate session for specific user
@@ -286,9 +281,9 @@ class EndSessionEndpoint:
     def is_post_logout_redirect_uri_legitimate(
         self,
         request: OAuth2Request,
-        post_logout_redirect_uri: Optional[str],
+        post_logout_redirect_uri: str | None,
         client,
-        logout_hint: Optional[str],
+        logout_hint: str | None,
     ) -> bool:
         """Determine if post logout redirection can proceed without a valid id_token_hint.
 
@@ -319,8 +314,8 @@ class EndSessionEndpoint:
         self,
         request: OAuth2Request,
         client,
-        redirect_uri: Optional[str],
-        ui_locales: Optional[str],
+        redirect_uri: str | None,
+        ui_locales: str | None,
     ):
         """Create a response asking the user to confirm logout.
 
@@ -368,6 +363,8 @@ class EndSessionEndpoint:
     ) -> bool:
         """Determine if an explicit confirmation by the user is needed for logout.
 
+        This method may be re-implemented. It returns False by default.
+
         Example::
 
             def is_confirmation_needed(
@@ -376,7 +373,8 @@ class EndSessionEndpoint:
                 user = get_current_user()
                 if not user:
                     return False
-                return logout_hint and logout_hint != user.user_name
+
+                return user.is_admin
 
         :param request: The OAuth2Request object.
         :param redirect_uri: The requested redirect URI, or None.
