@@ -33,7 +33,7 @@ def sign_jwt_bearer_assertion(
         issued_at = int(time.time())
 
     expires_in = kwargs.pop("expires_in", 3600)
-    if not expires_at:
+    if expires_at is None:
         expires_at = issued_at + expires_in
 
     payload["iat"] = issued_at
