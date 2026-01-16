@@ -52,4 +52,6 @@ class ClientMetadataClaims(BaseClaims):
 
                 # TODO: public client should never be allowed to use http
                 if not is_secure_transport(uri):
-                    raise ValueError('"authorization_endpoint" MUST use "https" scheme')
+                    raise ValueError(
+                        '"post_logout_redirect_uris" MUST use "https" scheme'
+                    )
