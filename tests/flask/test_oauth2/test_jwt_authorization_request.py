@@ -65,9 +65,9 @@ def client_registration_endpoint(app, server, metadata, db):
 
     server.register_endpoint(
         ClientRegistrationEndpoint(
-            validator_classes=[
-                rfc7591.ClientMetadataValidator,
-                rfc9101.ClientMetadataValidator,
+            claims_classes=[
+                rfc7591.ClientMetadataClaims,
+                rfc9101.ClientMetadataClaims,
             ]
         )
     )

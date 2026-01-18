@@ -1,9 +1,10 @@
-from authlib.common.urls import is_valid_url
-from authlib.jose import BaseClaims
-from authlib.jose import JsonWebKey
-from authlib.jose.errors import InvalidClaimError
+from joserfc.errors import InvalidClaimError
+from joserfc.jwk import KeySet
 
-from .validators import get_claims_options
+from authlib.common.urls import is_valid_url
+from authlib.oauth2.claims import BaseClaims
+
+from ..rfc6749 import scope_to_list
 
 
 class ClientMetadataClaims(BaseClaims):
@@ -26,8 +27,8 @@ class ClientMetadataClaims(BaseClaims):
         "software_version",
     ]
 
-    def validate(self):
-        self._validate_essential_claims()
+    def validate(self, now=None, leeway=0):
+        super().validate(now, leeway)
         self.validate_redirect_uris()
         self.validate_token_endpoint_auth_method()
         self.validate_grant_types()
@@ -65,19 +66,16 @@ class ClientMetadataClaims(BaseClaims):
         # If unspecified or omitted, the default is "client_secret_basic"
         if "token_endpoint_auth_method" not in self:
             self["token_endpoint_auth_method"] = "client_secret_basic"
-        self._validate_claim_value("token_endpoint_auth_method")
 
     def validate_grant_types(self):
         """Array of OAuth 2.0 grant type strings that the client can use at
         the token endpoint.
         """
-        self._validate_claim_value("grant_types")
 
     def validate_response_types(self):
         """Array of the OAuth 2.0 response type strings that the client can
         use at the authorization endpoint.
         """
-        self._validate_claim_value("response_types")
 
     def validate_client_name(self):
         """Human-readable string name of the client to be presented to the
@@ -114,7 +112,6 @@ class ClientMetadataClaims(BaseClaims):
         this list are service specific.  If omitted, an authorization
         server MAY register a client with a default set of scopes.
         """
-        self._validate_claim_value("scope")
 
     def validate_contacts(self):
         """Array of strings representing ways to contact people responsible
@@ -180,7 +177,7 @@ class ClientMetadataClaims(BaseClaims):
 
             jwks = self["jwks"]
             try:
-                key_set = JsonWebKey.import_key_set(jwks)
+                key_set = KeySet.import_key_set(jwks)
                 if not key_set:
                     raise InvalidClaimError("jwks")
             except ValueError as exc:
@@ -222,4 +219,54 @@ class ClientMetadataClaims(BaseClaims):
 
     @classmethod
     def get_claims_options(cls, metadata):
-        return get_claims_options(metadata)
+        """Generate claims options validation from Authorization Server metadata."""
+        scopes_supported = metadata.get("scopes_supported")
+        response_types_supported = metadata.get("response_types_supported")
+        grant_types_supported = metadata.get("grant_types_supported")
+        auth_methods_supported = metadata.get("token_endpoint_auth_methods_supported")
+        options = {}
+        if scopes_supported is not None:
+            scopes_supported = set(scopes_supported)
+
+            def _validate_scope(claims, value):
+                if not value:
+                    return True
+
+                scopes = set(scope_to_list(value))
+                return scopes_supported.issuperset(scopes)
+
+            options["scope"] = {"validate": _validate_scope}
+
+        if response_types_supported is not None:
+            response_types_supported = [
+                set(items.split()) for items in response_types_supported
+            ]
+
+            def _validate_response_types(claims, value):
+                # If omitted, the default is that the client will use only the "code"
+                # response type.
+                response_types = (
+                    [set(items.split()) for items in value] if value else [{"code"}]
+                )
+                return all(
+                    response_type in response_types_supported
+                    for response_type in response_types
+                )
+
+            options["response_types"] = {"validate": _validate_response_types}
+
+        if grant_types_supported is not None:
+            grant_types_supported = set(grant_types_supported)
+
+            def _validate_grant_types(claims, value):
+                # If omitted, the default behavior is that the client will use only
+                # the "authorization_code" Grant Type.
+                grant_types = set(value) if value else {"authorization_code"}
+                return grant_types_supported.issuperset(grant_types)
+
+            options["grant_types"] = {"validate": _validate_grant_types}
+
+        if auth_methods_supported is not None:
+            options["token_endpoint_auth_method"] = {"values": auth_methods_supported}
+
+        return options

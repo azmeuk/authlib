@@ -1,7 +1,8 @@
 import pytest
 from flask import json
+from joserfc import jwt
+from joserfc.jwk import RSAKey
 
-from authlib.jose import jwt
 from authlib.oauth2.rfc7591 import (
     ClientRegistrationEndpoint as _ClientRegistrationEndpoint,
 )
@@ -75,9 +76,10 @@ def test_create_client(test_client):
 
 def test_software_statement(test_client):
     payload = {"software_id": "uuid-123", "client_name": "Authlib"}
-    s = jwt.encode({"alg": "RS256"}, payload, read_file_path("rsa_private.pem"))
+    key = RSAKey.import_key(read_file_path("rsa_private.pem"))
+    software_statement = jwt.encode({"alg": "RS256"}, payload, key)
     body = {
-        "software_statement": s.decode("utf-8"),
+        "software_statement": software_statement,
     }
 
     headers = {"Authorization": "bearer abc"}
@@ -96,9 +98,10 @@ def test_no_public_key(test_client, server):
             return None
 
     payload = {"software_id": "uuid-123", "client_name": "Authlib"}
-    s = jwt.encode({"alg": "RS256"}, payload, read_file_path("rsa_private.pem"))
+    key = RSAKey.import_key(read_file_path("rsa_private.pem"))
+    software_statement = jwt.encode({"alg": "RS256"}, payload, key)
     body = {
-        "software_statement": s.decode("utf-8"),
+        "software_statement": software_statement,
     }
 
     server._endpoints[ClientRegistrationEndpoint.ENDPOINT_NAME] = [

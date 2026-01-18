@@ -13,11 +13,9 @@ from .errors import InvalidClientMetadataError
 from .errors import InvalidRedirectURIError
 from .errors import InvalidSoftwareStatementError
 from .errors import UnapprovedSoftwareStatementError
-from .validators import ClientMetadataValidator
 
 __all__ = [
     "ClientMetadataClaims",
-    "ClientMetadataValidator",
     "ClientRegistrationEndpoint",
     "InvalidRedirectURIError",
     "InvalidClientMetadataError",
