@@ -39,5 +39,41 @@ update it to catch the corresponding exceptions from ``joserfc`` instead.
      except JoseError:
          pass
 
-Deprecated Messages
--------------------
+JWTAuthenticationRequest
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+Starting with v1.7, ``authlib.oauth2.rfc9101.JWTAuthenticationRequest`` uses
+only the recommended JWT algorithms by default. If you need to support additional
+algorithms, you can explicitly include them in ``get_server_metadata``:
+
+.. code-block:: python
+
+    class MyJWTAuthenticationRequest(JWTAuthenticationRequest):
+        def get_server_metadata(self):
+            return {
+                ...,
+                "request_object_signing_alg_values_supported": ["RS256", ...],
+            }
+
+
+UserInfoEndpoint
+~~~~~~~~~~~~~~~~
+
+The signing algorithms supported by ``authlib.oidc.core.UserInfoEndpoint`` are
+limited to the recommended JWT algorithms. If you need to support additional
+algorithms, you can explicitly include them in ``get_supported_algorithms``:
+
+.. code-block:: python
+
+    class MyUserInfoEndpoint(UserInfoEndpoint):
+        def get_supported_algorithms(self):
+            return ["RS512"]
+
+Deprecating Messages
+--------------------
+
+Most deprecation warnings are triggered by how keys are imported. For security
+reasons, joserfc_ requires explicit key types. Instead of passing raw strings or
+bytes as keys, you should return ``OctKey``, ``RSAKey``, ``ECKey``, ``OKPKey``,
+or ``KeySet`` instances directly.
