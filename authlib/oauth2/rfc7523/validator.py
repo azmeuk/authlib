@@ -13,10 +13,6 @@ logger = logging.getLogger(__name__)
 
 
 class JWTBearerToken(TokenMixin, dict):
-    def __init__(self, token: jwt.Token):
-        super().__init__(token.claims)
-        self.header = token.header
-
     def check_client(self, client):
         return self["client_id"] == client.get_client_id()
 
@@ -63,4 +59,4 @@ class JWTBearerTokenValidator(BearerTokenValidator):
             logger.debug("Authenticate token failed. %r", error)
             return None
 
-        return JWTBearerToken(token)
+        return JWTBearerToken(token.claims)

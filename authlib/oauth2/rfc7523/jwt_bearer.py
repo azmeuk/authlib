@@ -74,6 +74,9 @@ class JWTBearerGrant(BaseGrant, TokenEndpointMixin):
         except JoseError as e:
             log.debug("Assertion Error: %r", e)
             raise InvalidGrantError(description=e.description) from e
+        except ValueError as e:
+            log.debug("Assertion Error: %r", e)
+            raise InvalidGrantError("Invalid JWT assertion") from None
 
         self.verify_claims(token.claims)
         return token.claims

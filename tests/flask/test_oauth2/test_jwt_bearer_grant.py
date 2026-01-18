@@ -1,5 +1,8 @@
 import pytest
 from flask import json
+from joserfc import jws
+from joserfc import jwt
+from joserfc.jwk import OctKey
 
 from authlib.oauth2.rfc7523 import JWTBearerGrant as _JWTBearerGrant
 from authlib.oauth2.rfc7523 import JWTBearerTokenGenerator
@@ -151,3 +154,31 @@ def test_jwt_bearer_token_generator(test_client, server):
     resp = json.loads(rv.data)
     assert "access_token" in resp
     assert resp["access_token"].count(".") == 2
+
+
+def test_invalid_payload_assertion(test_client):
+    assertion = jws.serialize_compact(
+        {"alg": "HS256", "kid": "1"},
+        "text",
+        OctKey.import_key("foo"),
+    )
+    rv = test_client.post(
+        "/oauth/token",
+        data={"grant_type": JWTBearerGrant.GRANT_TYPE, "assertion": assertion},
+    )
+    resp = json.loads(rv.data)
+    assert "Invalid JWT" in resp["error_description"]
+
+
+def test_missing_assertion_claims(test_client):
+    assertion = jwt.encode(
+        {"alg": "HS256", "kid": "1"},
+        {"iss": "client-id"},
+        OctKey.import_key("foo"),
+    )
+    rv = test_client.post(
+        "/oauth/token",
+        data={"grant_type": JWTBearerGrant.GRANT_TYPE, "assertion": assertion},
+    )
+    resp = json.loads(rv.data)
+    assert "Missing claim" in resp["error_description"]

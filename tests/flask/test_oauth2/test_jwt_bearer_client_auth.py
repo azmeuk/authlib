@@ -2,6 +2,7 @@ import time
 
 import pytest
 from flask import json
+from joserfc import jws
 from joserfc import jwt
 from joserfc.jwk import OctKey
 
@@ -41,7 +42,7 @@ def client(client, db):
 def register_jwt_client_auth(server, validate_jti=True):
     class JWTClientAuth(JWTBearerClientAssertion):
         def validate_jti(self, claims, jti):
-            return True
+            return jti != "used"
 
         def resolve_client_public_key(self, client, headers):
             if headers["alg"] == "RS256":
@@ -187,6 +188,44 @@ def test_not_validate_jti(test_client, server):
     )
     resp = json.loads(rv.data)
     assert "access_token" in resp
+
+
+def test_validate_jti_failed(test_client, server):
+    register_jwt_client_auth(server)
+    rv = test_client.post(
+        "/oauth/token",
+        data={
+            "grant_type": "client_credentials",
+            "client_assertion_type": JWTBearerClientAssertion.CLIENT_ASSERTION_TYPE,
+            "client_assertion": client_secret_jwt_sign(
+                client_secret="client-secret",
+                client_id="client-id",
+                token_endpoint="https://provider.test/oauth/token",
+                claims={"jti": "used"},
+            ),
+        },
+    )
+    resp = json.loads(rv.data)
+    assert "JWT ID" in resp["error_description"]
+
+
+def test_invalid_assertion(test_client, server):
+    register_jwt_client_auth(server)
+    client_assertion = jws.serialize_compact(
+        {"alg": "HS256"},
+        "text",
+        OctKey.import_key("client-secret"),
+    )
+    rv = test_client.post(
+        "/oauth/token",
+        data={
+            "grant_type": "client_credentials",
+            "client_assertion_type": JWTBearerClientAssertion.CLIENT_ASSERTION_TYPE,
+            "client_assertion": client_assertion,
+        },
+    )
+    resp = json.loads(rv.data)
+    assert "Invalid JWT" in resp["error_description"]
 
 
 def test_missing_exp_claim(test_client, server):
