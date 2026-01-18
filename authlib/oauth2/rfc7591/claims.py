@@ -1,4 +1,5 @@
 from joserfc.errors import InvalidClaimError
+from joserfc.errors import JoseError
 from joserfc.jwk import KeySet
 
 from authlib.common.urls import is_valid_url
@@ -177,10 +178,8 @@ class ClientMetadataClaims(BaseClaims):
 
             jwks = self["jwks"]
             try:
-                key_set = KeySet.import_key_set(jwks)
-                if not key_set:
-                    raise InvalidClaimError("jwks")
-            except ValueError as exc:
+                KeySet.import_key_set(jwks)
+            except (JoseError, ValueError) as exc:
                 raise InvalidClaimError("jwks") from exc
 
     def validate_software_id(self):

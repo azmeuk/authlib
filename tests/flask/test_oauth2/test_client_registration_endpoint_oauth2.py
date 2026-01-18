@@ -1,6 +1,7 @@
 import pytest
 from flask import json
 from joserfc import jwt
+from joserfc.jwk import KeySet
 from joserfc.jwk import RSAKey
 
 from authlib.oauth2.rfc7591 import (
@@ -208,3 +209,45 @@ def test_token_endpoint_auth_methods_supported(test_client, metadata):
     rv = test_client.post("/create_client", json=body, headers=headers)
     resp = json.loads(rv.data)
     assert resp["error"] in "invalid_client_metadata"
+
+
+def test_validate_contacts(test_client):
+    headers = {"Authorization": "bearer abc"}
+    body = {"client_name": "Authlib", "contacts": "invalid"}
+    rv = test_client.post("/create_client", json=body, headers=headers)
+    resp = json.loads(rv.data)
+    assert "contacts" in resp["error_description"]
+
+
+def test_validate_jwks(test_client):
+    headers = {"Authorization": "bearer abc"}
+
+    keyset = KeySet.generate_key_set("oct", 128, count=1)
+    valid_jwks = keyset.as_dict()
+
+    body = {"client_name": "Authlib", "jwks": valid_jwks}
+    rv = test_client.post("/create_client", json=body, headers=headers)
+    resp = json.loads(rv.data)
+    assert resp["client_name"] == "Authlib"
+
+    # case 1: jwks and jwks_uri both provided
+    body = {
+        "client_name": "Authlib",
+        "jwks": valid_jwks,
+        "jwks_uri": "http://testserver/jwks",
+    }
+    rv = test_client.post("/create_client", json=body, headers=headers)
+    resp = json.loads(rv.data)
+    assert "jwks" in resp["error_description"]
+
+    # case 2: empty jwks
+    body = {"client_name": "Authlib", "jwks": {"keys": []}}
+    rv = test_client.post("/create_client", json=body, headers=headers)
+    resp = json.loads(rv.data)
+    assert "jwks" in resp["error_description"]
+
+    # case 3: invalid jwks
+    body = {"client_name": "Authlib", "jwks": {"keys": "hello"}}
+    rv = test_client.post("/create_client", json=body, headers=headers)
+    resp = json.loads(rv.data)
+    assert "jwks" in resp["error_description"]
