@@ -18,6 +18,7 @@ Version 1.6.7
   authorization and token endpoints. ``client.get_allowed_scope()`` is called
   to determine the default scope when omitted. :issue:`845`
 - Stop support for Python 3.9, start support Python 3.14. :pr:`850`
+- Allow ``AuthorizationServerMetadata.validate()`` to compose with RFC extension classes.
 
 Version 1.6.6
 -------------
