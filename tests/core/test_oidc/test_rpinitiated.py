@@ -1,30 +1,41 @@
 import pytest
 
 from authlib.jose.errors import InvalidClaimError
+from authlib.oidc import discovery
+from authlib.oidc import rpinitiated
 from authlib.oidc.rpinitiated import ClientMetadataClaims
-from authlib.oidc.rpinitiated import OpenIDProviderMetadata
 
 
-def test_validate_end_session_endpoint():
-    metadata = OpenIDProviderMetadata()
-    metadata.validate_end_session_endpoint()
+@pytest.fixture
+def valid_oidc_metadata():
+    return {
+        "issuer": "https://provider.test",
+        "authorization_endpoint": "https://provider.test/authorize",
+        "token_endpoint": "https://provider.test/token",
+        "jwks_uri": "https://provider.test/jwks.json",
+        "response_types_supported": ["code"],
+        "subject_types_supported": ["public"],
+        "id_token_signing_alg_values_supported": ["RS256"],
+    }
 
-    metadata = OpenIDProviderMetadata(
-        {"end_session_endpoint": "http://provider.test/end_session"}
-    )
+
+def test_validate_end_session_endpoint(valid_oidc_metadata):
+    valid_oidc_metadata["end_session_endpoint"] = "https://provider.test/logout"
+    metadata = discovery.OpenIDProviderMetadata(valid_oidc_metadata)
+    metadata.validate(metadata_classes=[rpinitiated.OpenIDProviderMetadata])
+
+
+def test_validate_end_session_endpoint_missing(valid_oidc_metadata):
+    """end_session_endpoint is optional."""
+    metadata = discovery.OpenIDProviderMetadata(valid_oidc_metadata)
+    metadata.validate(metadata_classes=[rpinitiated.OpenIDProviderMetadata])
+
+
+def test_validate_end_session_endpoint_insecure(valid_oidc_metadata):
+    valid_oidc_metadata["end_session_endpoint"] = "http://provider.test/logout"
+    metadata = discovery.OpenIDProviderMetadata(valid_oidc_metadata)
     with pytest.raises(ValueError, match="https"):
-        metadata.validate_end_session_endpoint()
-
-    metadata = OpenIDProviderMetadata(
-        {"end_session_endpoint": "https://provider.test/end_session"}
-    )
-    metadata.validate_end_session_endpoint()
-
-
-def test_end_session_endpoint_missing():
-    """Missing end_session_endpoint should be valid (optional)."""
-    metadata = OpenIDProviderMetadata({})
-    metadata.validate_end_session_endpoint()
+        metadata.validate(metadata_classes=[rpinitiated.OpenIDProviderMetadata])
 
 
 def test_post_logout_redirect_uris():
