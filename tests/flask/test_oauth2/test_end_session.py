@@ -277,6 +277,43 @@ def test_invalid_jwt(test_client, confirming_server, client):
     assert rv.json["error"] == "invalid_request"
 
 
+def test_expired_id_token_is_accepted(test_client, confirming_server, client):
+    """Expired ID tokens should be accepted per the specification."""
+    expired_id_token = create_id_token(
+        {
+            "iss": "https://provider.test",
+            "sub": "user-1",
+            "aud": "client-id",
+            "exp": 1,  # Expired in 1970
+            "iat": 0,
+        }
+    )
+    rv = test_client.get(f"/oauth/end_session?id_token_hint={expired_id_token}")
+
+    assert rv.status_code == 200
+    assert rv.data == b"Logged out"
+
+
+def test_expired_token_with_invalid_nbf_is_rejected(
+    test_client, confirming_server, client
+):
+    """Expired token with nbf in the future should still be rejected."""
+    expired_id_token = create_id_token(
+        {
+            "iss": "https://provider.test",
+            "sub": "user-1",
+            "aud": "client-id",
+            "exp": 1,  # Expired in 1970
+            "iat": 0,
+            "nbf": 9999999999,  # Not valid until far future
+        }
+    )
+    rv = test_client.get(f"/oauth/end_session?id_token_hint={expired_id_token}")
+
+    assert rv.status_code == 400
+    assert rv.json["error"] == "invalid_request"
+
+
 def test_resolve_client_from_aud_list_returns_none(test_client, base_server, client):
     """When aud is a list, resolve_client_from_id_token_claims returns None by default."""
     id_token_with_aud_list = create_id_token(

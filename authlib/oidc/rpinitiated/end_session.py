@@ -6,8 +6,19 @@ https://openid.net/specs/openid-connect-rpinitiated-1_0.html
 from authlib.common.urls import add_params_to_uri
 from authlib.jose import jwt
 from authlib.jose.errors import JoseError
+from authlib.jose.rfc7519 import JWTClaims
 from authlib.oauth2.rfc6749 import OAuth2Request
 from authlib.oauth2.rfc6749.errors import InvalidRequestError
+
+
+class _NonExpiringJWTClaims(JWTClaims):
+    """JWTClaims that skips expiration validation.
+
+    Per the RP-Initiated Logout spec, expired tokens should be accepted.
+    """
+
+    def validate_exp(self, now, leeway):
+        pass
 
 
 class EndSessionEndpoint:
@@ -239,7 +250,7 @@ class EndSessionEndpoint:
             claims = jwt.decode(
                 id_token_hint,
                 self.get_server_jwks(),
-                claims_options={"exp": {"validate": lambda c: True}},
+                claims_cls=_NonExpiringJWTClaims,
             )
             claims.validate()
             return claims
