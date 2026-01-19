@@ -45,13 +45,16 @@ class ClientMetadataClaims(BaseClaims):
         http RP URIs.
         """
         uris = self.get("post_logout_redirect_uris")
-        if uris:
-            for uri in uris:
-                if not is_valid_url(uri):
-                    raise InvalidClaimError("post_logout_redirect_uris")
+        if not uris:
+            return
 
-                # TODO: public client should never be allowed to use http
-                if not is_secure_transport(uri):
-                    raise ValueError(
-                        '"post_logout_redirect_uris" MUST use "https" scheme'
-                    )
+        is_public = self.get("token_endpoint_auth_method") == "none"
+
+        for uri in uris:
+            if not is_valid_url(uri):
+                raise InvalidClaimError("post_logout_redirect_uris")
+
+            if is_public and not is_secure_transport(uri):
+                raise ValueError(
+                    '"post_logout_redirect_uris" MUST use "https" scheme for public clients'
+                )

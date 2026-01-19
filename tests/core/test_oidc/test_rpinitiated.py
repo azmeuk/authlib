@@ -66,10 +66,26 @@ def test_post_logout_redirect_uris_empty():
     claims.validate()
 
 
-def test_post_logout_redirect_uris_insecure():
-    """HTTP URIs should be rejected."""
+def test_post_logout_redirect_uris_insecure_public_client():
+    """HTTP URIs should be rejected for public clients."""
     claims = ClientMetadataClaims(
-        {"post_logout_redirect_uris": ["http://client.test/logout"]}, {}
+        {
+            "post_logout_redirect_uris": ["http://client.test/logout"],
+            "token_endpoint_auth_method": "none",
+        },
+        {},
     )
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="public clients"):
         claims.validate()
+
+
+def test_post_logout_redirect_uris_insecure_confidential_client():
+    """HTTP URIs should be accepted for confidential clients."""
+    claims = ClientMetadataClaims(
+        {
+            "post_logout_redirect_uris": ["http://client.test/logout"],
+            "token_endpoint_auth_method": "client_secret_basic",
+        },
+        {},
+    )
+    claims.validate()
