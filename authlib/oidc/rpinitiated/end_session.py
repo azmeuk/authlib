@@ -209,7 +209,7 @@ class EndSessionEndpoint:
         """
         raise NotImplementedError()
 
-    def validate_id_token_claims(self, id_token_claims: str) -> bool:
+    def validate_id_token_claims(self, id_token_claims: dict) -> bool:
         """Validate the ID token claims.
 
         This method must be implemented by developers. It should verify that
