@@ -13,15 +13,54 @@ This section contains the generic implementation of `OpenID Connect RP-Initiated
 Logout 1.0`_. This specification enables Relying Parties (RPs) to request that
 an OpenID Provider (OP) log out the End-User.
 
-To integrate with Authlib :ref:`flask_oauth2_server` or :ref:`django_oauth2_server`,
-developers MUST implement the missing methods of :class:`EndSessionEndpoint`.
-
 .. _OpenID Connect RP-Initiated Logout 1.0: https://openid.net/specs/openid-connect-rpinitiated-1_0.html
 
 End Session Endpoint
 --------------------
 
-The End Session Endpoint handles logout requests from Relying Parties.
+To add RP-Initiated Logout support, create a subclass of :class:`EndSessionEndpoint`
+and implement the required methods::
+
+    from authlib.oidc.rpinitiated import EndSessionEndpoint
+
+    class MyEndSessionEndpoint(EndSessionEndpoint):
+        def get_server_jwks(self):
+            return load_jwks()
+
+        def get_client_by_id(self, client_id):
+            return Client.query.filter_by(client_id=client_id).first()
+
+        def end_session(self, end_session_request):
+            # Terminate user session
+            session.clear()
+
+    server.register_endpoint(MyEndSessionEndpoint)
+
+Then create a logout route. You have two options:
+
+**Non-interactive mode** (simple, no confirmation page)::
+
+    @app.route('/logout', methods=['GET', 'POST'])
+    def logout():
+        return server.create_endpoint_response("end_session")
+
+**Interactive mode** (with confirmation page)::
+
+    @app.route('/logout', methods=['GET', 'POST'])
+    def logout():
+        try:
+            end_session_req = server.validate_endpoint_request("end_session")
+        except OAuth2Error as error:
+            return server.handle_error_response(None, error)
+
+        if end_session_req.needs_confirmation and request.method == 'GET':
+            # Render your own confirmation page
+            return render_template(
+                'confirm_logout.html',
+                client=end_session_req.client,
+            )
+
+        return server.create_endpoint_response("end_session", end_session_req)
 
 Request Parameters
 ~~~~~~~~~~~~~~~~~~
@@ -44,24 +83,23 @@ Confirmation Flow
 ~~~~~~~~~~~~~~~~~
 
 Per the specification, logout requests without a valid ``id_token_hint`` are a
-potential means of denial of service. By default, the endpoint asks for user
-confirmation in such cases.
+potential means of denial of service. The :attr:`EndSessionRequest.needs_confirmation`
+property indicates when user confirmation is recommended.
 
-To customize the confirmation page, override :meth:`EndSessionEndpoint.create_confirmation_response`.
+You control the confirmation page rendering - simply check ``needs_confirmation``
+and render your own template as shown in the interactive mode example above.
 
-After the user confirms logout, you need to indicate that confirmation was given
-by overriding :meth:`EndSessionEndpoint.was_confirmation_given`.
+Post-Logout Redirection
+~~~~~~~~~~~~~~~~~~~~~~~
 
-If you want to require confirmation even when a valid ``id_token_hint`` is provided
-(e.g., when the ``logout_hint`` doesn't match the current user), override
-:meth:`EndSessionEndpoint.is_confirmation_needed`.
+Post-logout redirection only happens when:
 
-Post-Logout Redirection Without ID Token
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+1. A ``post_logout_redirect_uri`` is provided
+2. The client is resolved (via ``id_token_hint`` or ``client_id``)
+3. The URI is registered in the client's ``post_logout_redirect_uris``
 
-By default, post-logout redirection requires a valid ``id_token_hint``. If you
-have alternative means of confirming the legitimacy of the redirection target,
-override :meth:`EndSessionEndpoint.is_post_logout_redirect_uri_legitimate`.
+If all conditions are met, ``EndSessionRequest.redirect_uri`` contains the
+validated URI (with ``state`` appended if provided).
 
 Client Registration
 -------------------
@@ -74,7 +112,7 @@ registration and configuration endpoints::
 
     from authlib import oidc
     from authlib.oauth2 import rfc7591
-    
+
     authorization_server.register_endpoint(
         ClientRegistrationEndpoint(
             claims_classes=[
@@ -93,6 +131,10 @@ API Reference
 -------------
 
 .. autoclass:: EndSessionEndpoint
+    :member-order: bysource
+    :members:
+
+.. autoclass:: EndSessionRequest
     :member-order: bysource
     :members:
 

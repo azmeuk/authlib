@@ -3,12 +3,23 @@
 https://openid.net/specs/openid-connect-rpinitiated-1_0.html
 """
 
+from __future__ import annotations
+
+from dataclasses import dataclass
+from dataclasses import field
+from typing import TYPE_CHECKING
+from typing import Any
+
 from authlib.common.urls import add_params_to_uri
 from authlib.jose import jwt
 from authlib.jose.errors import JoseError
 from authlib.jose.rfc7519 import JWTClaims
-from authlib.oauth2.rfc6749 import OAuth2Request
+from authlib.oauth2.rfc6749.endpoint import Endpoint
+from authlib.oauth2.rfc6749.endpoint import EndpointRequest
 from authlib.oauth2.rfc6749.errors import InvalidRequestError
+
+if TYPE_CHECKING:
+    from authlib.oauth2.rfc6749.requests import OAuth2Request
 
 
 class _NonExpiringJWTClaims(JWTClaims):
@@ -21,224 +32,154 @@ class _NonExpiringJWTClaims(JWTClaims):
         pass
 
 
-class EndSessionEndpoint:
-    """OpenID Connect RP-Initiated Logout Endpoint.
+@dataclass
+class EndSessionRequest(EndpointRequest):
+    """Validated end session request data.
 
-    This endpoint allows a Relying Party to request that an OpenID Provider
-    log out the End-User. It must be subclassed and Developers
-    MUST implement the missing methods::
+    This object is returned by :meth:`EndSessionEndpoint.validate_request`
+    and contains all the validated information from the logout request.
+    """
 
-        from authlib.oidc.rpinitiated import EndSessionEndpoint
+    id_token_claims: dict | None = field(default=None, repr=False)
+    redirect_uri: str | None = None
+    logout_hint: str | None = None
+    ui_locales: str | None = None
 
+    @property
+    def needs_confirmation(self) -> bool:
+        """Whether user confirmation is recommended before logout.
+
+        Per the spec, logout requests without a valid id_token_hint are a
+        potential means of denial of service, so OPs should obtain explicit
+        confirmation from the End-User before acting upon them.
+        """
+        return self.id_token_claims is None
+
+
+class EndSessionEndpoint(Endpoint):
+    """OpenID Connect RP-Initiated Logout endpoint.
+
+    This endpoint follows a two-phase pattern for interactive flows:
+
+    1. Call ``server.validate_endpoint_request("end_session")`` to validate
+       the request and get an :class:`EndSessionRequest`
+    2. Check ``end_session_request.needs_confirmation`` and show UI if needed
+    3. Call ``server.create_endpoint_response("end_session", end_session_request)``
+       to execute logout and create the response
+
+    Example usage::
 
         class MyEndSessionEndpoint(EndSessionEndpoint):
+            def get_server_jwks(self):
+                return load_jwks()
+
             def get_client_by_id(self, client_id):
                 return Client.query.filter_by(client_id=client_id).first()
 
-            def get_server_jwks(self):
-                return server_jwks().as_dict()
+            def end_session(self, end_session_request):
+                session.clear()
 
-            def validate_id_token_claims(self, id_token_claims):
-                # Validate that the token corresponds to an active session
-                if id_token_claims["sid"] not in current_sessions(
-                    id_token_claims["aud"]
-                ):
-                    return False
-                return True
 
-            def end_session(self, request, id_token_claims):
-                # Perform actual session termination
-                logout_user()
+        server.register_endpoint(MyEndSessionEndpoint)
 
-            def create_end_session_response(self, request):
-                # Create the response after successful logout
-                # when there is no valid redirect uri
-                return 200, "You have been logged out.", []
 
-            def create_confirmation_response(
-                self, request, client, redirect_uri, ui_locales
-            ):
-                # Create a page asking the user to confirm logout
-                return (
-                    200,
-                    render_confirmation_page(
-                        client=client,
-                        redirect_uri=redirect_uri,
-                        state=state,
-                        ui_locales=ui_locales,
-                    ),
-                    [("Content-Type", "text/html")],
+        @app.route("/logout", methods=["GET", "POST"])
+        def logout():
+            try:
+                end_session_req = server.validate_endpoint_request("end_session")
+            except OAuth2Error as error:
+                return server.handle_error_response(None, error)
+
+            if end_session_req.needs_confirmation and request.method == "GET":
+                return render_template(
+                    "confirm_logout.html",
+                    client=end_session_req.client,
                 )
 
-    Register this endpoint and use it in routes::
+            return server.create_endpoint_response("end_session", end_session_req)
 
-        authorization_server.register_endpoint(MyEndSessionEndpoint())
+    For non-interactive usage (no confirmation page), use the standard pattern::
 
-
-        @app.route("/oauth/end_session", methods=["GET", "POST"])
-        def end_session():
-            return authorization_server.create_endpoint_response("end_session")
+        @app.route("/logout", methods=["GET", "POST"])
+        def logout():
+            return server.create_endpoint_response("end_session")
     """
 
     ENDPOINT_NAME = "end_session"
 
-    def __init__(self, server=None):
-        self.server = server
+    def validate_request(self, request: OAuth2Request) -> EndSessionRequest:
+        """Validate an end session request.
 
-    def create_endpoint_request(self, request: OAuth2Request):
-        return self.server.create_oauth2_request(request)
-
-    def __call__(self, request: OAuth2Request):
+        :param request: The OAuth2Request to validate
+        :returns: EndSessionRequest with validated data
+        :raises InvalidRequestError: If validation fails
+        """
         data = request.payload.data
+
         id_token_hint = data.get("id_token_hint")
-        logout_hint = data.get("logout_hint")
         client_id = data.get("client_id")
         post_logout_redirect_uri = data.get("post_logout_redirect_uri")
         state = data.get("state")
+        logout_hint = data.get("logout_hint")
         ui_locales = data.get("ui_locales")
 
-        # When an id_token_hint parameter is present, the OP MUST validate that it
-        # was the issuer of the ID Token.
+        # Validate id_token_hint if present
         id_token_claims = None
         if id_token_hint:
             id_token_claims = self._validate_id_token_hint(id_token_hint)
-            if not self.validate_id_token_claims(id_token_claims):
-                raise InvalidRequestError("Invalid id_token_hint")
 
+        # Resolve client
         client = None
         if client_id:
             client = self.get_client_by_id(client_id)
         elif id_token_claims:
-            client = self.resolve_client_from_id_token_claims(id_token_claims)
+            client = self._resolve_client_from_id_token_claims(id_token_claims)
 
-        # When both client_id and id_token_hint are present, the OP MUST verify
-        # that the Client Identifier matches the one used when issuing the ID Token.
+        # Verify client_id matches id_token aud claim
         if client_id and id_token_claims:
             aud = id_token_claims.get("aud")
             aud_list = [aud] if isinstance(aud, str) else (aud or [])
             if client_id not in aud_list:
                 raise InvalidRequestError("'client_id' does not match 'aud' claim")
 
+        # Validate post_logout_redirect_uri
         redirect_uri = None
-        if (
-            post_logout_redirect_uri
-            and self._validate_post_logout_redirect_uri(
+        if post_logout_redirect_uri and client:
+            if self._is_valid_post_logout_redirect_uri(
                 client, post_logout_redirect_uri
-            )
-        ) and (
-            id_token_claims
-            or self.is_post_logout_redirect_uri_legitimate(
-                request, post_logout_redirect_uri, client, logout_hint
-            )
-        ):
-            redirect_uri = post_logout_redirect_uri
-            if state:
-                redirect_uri = add_params_to_uri(redirect_uri, dict(state=state))
+            ):
+                redirect_uri = post_logout_redirect_uri
+                if state:
+                    redirect_uri = add_params_to_uri(redirect_uri, {"state": state})
 
-        # Logout requests without a valid id_token_hint value are a potential means
-        # of denial of service; therefore, OPs should obtain explicit confirmation
-        # from the End-User before acting upon them.
-        if (
-            not id_token_claims
-            or self.is_confirmation_needed(request, redirect_uri, client, logout_hint)
-        ) and not self.was_confirmation_given():
-            return self.create_confirmation_response(
-                request, client, redirect_uri, ui_locales
-            )
+        return EndSessionRequest(
+            request=request,
+            client=client,
+            id_token_claims=id_token_claims,
+            redirect_uri=redirect_uri,
+            logout_hint=logout_hint,
+            ui_locales=ui_locales,
+        )
 
-        self.end_session(request, id_token_claims)
+    def create_response(
+        self, validated_request: EndpointRequest
+    ) -> tuple[int, Any, list]:
+        """Create the end session HTTP response.
 
-        if redirect_uri:
-            return 302, "", [("Location", redirect_uri)]
-        return self.create_end_session_response(request)
+        Executes the logout via :meth:`end_session`, then returns a redirect
+        response if a valid redirect_uri is present, or a simple success response.
 
-    def _validate_post_logout_redirect_uri(
-        self, client, post_logout_redirect_uri: str
-    ) -> bool:
-        """Check that post_logout_redirect_uri exactly matches a registered URI."""
-        if not client:
-            return False
-
-        registered_uris = client.client_metadata.get("post_logout_redirect_uris", [])
-
-        return post_logout_redirect_uri in registered_uris
-
-    def get_client_by_id(self, client_id: str):
-        """Get a client by its client_id.
-
-        This method must be implemented by developers::
-
-            def get_client_by_id(self, client_id):
-                return Client.query.filter_by(client_id=client_id).first()
-
-        :param client_id: The client identifier.
-        :return: The client object or None.
+        :param validated_request: The validated EndSessionRequest
+        :returns: Tuple of (status_code, body, headers)
         """
-        raise NotImplementedError()
+        req: EndSessionRequest = validated_request  # type: ignore[assignment]
+        self.end_session(req)
 
-    def resolve_client_from_id_token_claims(self, id_token_claims: dict):
-        """Resolve the client from ID token claims when client_id is not provided.
+        if req.redirect_uri:
+            return 302, "", [("Location", req.redirect_uri)]
+        return 200, "Logged out", []
 
-        When an id_token_hint is provided without an explicit client_id parameter,
-        this method determines which client initiated the logout request based on
-        the token claims. The ``aud`` claim may be a single string or an array of
-        client identifiers.
-
-        Override this method to implement custom logic for determining the client,
-        for example by checking which client the user has an active session with::
-
-            def resolve_client_from_id_token_claims(self, id_token_claims):
-                aud = id_token_claims.get("aud")
-                if isinstance(aud, str):
-                    return self.get_client_by_id(aud)
-                # Check which client has an active session
-                for client_id in aud:
-                    if self.has_active_session_for_client(client_id):
-                        return self.get_client_by_id(client_id)
-                return None
-
-        By default, returns None requiring the client_id parameter to be provided
-        explicitly when the ``aud`` claim is an array.
-
-        :param id_token_claims: The validated ID token claims dictionary.
-        :return: The client object or None.
-        """
-        aud = id_token_claims.get("aud")
-        if isinstance(aud, str):
-            return self.get_client_by_id(aud)
-        return None
-
-    def get_server_jwks(self):
-        """Get the JWK set used to validate ID tokens.
-
-        This method must be implemented by developers::
-
-            def get_server_jwks(self):
-                return server_jwks().as_dict()
-
-        :return: The JWK set dictionary.
-        """
-        raise NotImplementedError()
-
-    def validate_id_token_claims(self, id_token_claims: dict) -> bool:
-        """Validate the ID token claims.
-
-        This method must be implemented by developers. It should verify that
-        the token corresponds to an active session in the OP::
-
-            def validate_id_token_claims(self, id_token_claims):
-                if id_token_claims["sid"] not in current_sessions(
-                    id_token_claims["aud"]
-                ):
-                    return False
-                return True
-
-        :param id_token_claims: The ID token claims dictionary.
-        :return: True if the ID token claims dict is valid, False otherwise.
-        """
-        return True
-
-    def _validate_id_token_hint(self, id_token_hint):
+    def _validate_id_token_hint(self, id_token_hint: str) -> dict:
         """Validate that the OP was the issuer of the ID Token.
 
         Per the specification, expired tokens are accepted: "The OP SHOULD
@@ -253,144 +194,52 @@ class EndSessionEndpoint:
                 claims_cls=_NonExpiringJWTClaims,
             )
             claims.validate()
-            return claims
+            return dict(claims)
         except JoseError as exc:
             raise InvalidRequestError(exc.description) from exc
 
-    def end_session(self, request: OAuth2Request, id_token_claims: dict | None):
-        """Perform the actual session termination.
+    def _resolve_client_from_id_token_claims(self, id_token_claims: dict):
+        """Resolve client from id_token aud claim.
 
-        This method must be implemented by developers. Note that logout
-        requests are intended to be idempotent: it is not an error if the
-        End-User is not logged in at the OP::
+        When aud is a single string, resolves the client directly.
+        When aud is a list, returns None (ambiguous case).
+        Subclasses can override for custom resolution logic.
+        """
+        aud = id_token_claims.get("aud")
+        if isinstance(aud, str):
+            return self.get_client_by_id(aud)
+        return None
 
-            def end_session(self, request, id_token_claims):
-                # Terminate session for specific user
-                if id_token_claims:
-                    user_id = id_token_claims.get("sub")
-                    logout_user(user_id)
-                logout_current_user()
+    def _is_valid_post_logout_redirect_uri(
+        self, client, post_logout_redirect_uri: str
+    ) -> bool:
+        """Check if post_logout_redirect_uri is registered for the client."""
+        registered_uris = client.client_metadata.get("post_logout_redirect_uris", [])
+        return post_logout_redirect_uri in registered_uris
 
-        :param request: The OAuth2Request object.
-        :param id_token_claims: The validated ID token claims, or None.
+    # --- Methods to implement in subclass ---
+
+    def get_server_jwks(self):
+        """Return the server's JSON Web Key Set for validating ID tokens.
+
+        :returns: JWK Set (dict or KeySet)
         """
         raise NotImplementedError()
 
-    def create_end_session_response(self, request: OAuth2Request):
-        """Create the response after successful logout when there is no valid redirect uri.
+    def get_client_by_id(self, client_id: str):
+        """Fetch a client by its client_id.
 
-        This method must be implemented by developers::
-
-            def create_end_session_response(self, request):
-                return 200, "You have been logged out.", []
-
-        :param request: The OAuth2Request object.
-        :return: A tuple of (status_code, body, headers).
+        :param client_id: The client identifier
+        :returns: Client object or None
         """
         raise NotImplementedError()
 
-    def is_post_logout_redirect_uri_legitimate(
-        self,
-        request: OAuth2Request,
-        post_logout_redirect_uri: str | None,
-        client,
-        logout_hint: str | None,
-    ) -> bool:
-        """Determine if post logout redirection can proceed without a valid id_token_hint.
+    def end_session(self, end_session_request: EndSessionRequest):
+        """Terminate the user's session.
 
-        An id_token_hint carring an ID Token for the RP is also RECOMMENDED when requesting
-        post-logout redirection; if it is not supplied with post_logout_redirect_uri, the OP
-        MUST NOT perform post-logout redirection unless the OP has other means of confirming
-        the legitimacy of the post-logout redirection target::
+        Implement this method to perform the actual logout logic,
+        such as clearing session data, revoking tokens, etc.
 
-            def is_post_logout_redirect_uri_legitimate(
-                self, request, post_logout_redirect_uri, client, logout_hint
-            ):
-                # Allow redirection for trusted clients
-                return client and client.is_trusted
-
-        Override this method if you have alternative confirmation mechanisms.
-
-        By default, returns False to disable post logout redirection.
-
-        :param request: The OAuth2Request object.
-        :param post_logout_redirect_uri: The post_logout_redirect_uri parameter, or None.
-        :param client: The client object, or None.
-        :param logout_hint: The logout_hint parameter, or None.
-        :return: True if post logout redirection can proceed, False if it cannot.
+        :param end_session_request: The validated EndSessionRequest
         """
-        return False
-
-    def create_confirmation_response(
-        self,
-        request: OAuth2Request,
-        client,
-        redirect_uri: str | None,
-        ui_locales: str | None,
-    ):
-        """Create a response asking the user to confirm logout.
-
-        This is called when id_token_hint is missing or invalid, or for other specific reasons determined by the OP.
-
-        Override to provide a confirmation UI::
-
-            def create_confirmation_response(
-                self, request, client, redirect_uri, ui_locales
-            ):
-                return (
-                    200,
-                    render_confirmation_page(
-                        client=client,
-                        redirect_uri=redirect_uri,
-                        state=state,
-                        ui_locales=ui_locales,
-                    ),
-                    [("Content-Type", "text/html")],
-                )
-
-        :param request: The OAuth2Request object.
-        :param client: The client object, or None.
-        :param redirect_uri: The requested redirect URI, or None.
-        :param ui_locales: The ui_locales parameter, or None.
-        :return: A tuple of (status_code, body, headers).
-        """
-        return 400, "Logout confirmation required", []
-
-    def was_confirmation_given(self) -> bool:
-        """Determine if a confirmation was given for logout.
-
-        The user can use this function to indicate that confirmation has been given
-        by the user and they are ready to log out::
-
-            def was_confirmation_given(self):
-                return session.get("logout_confirmation", False)
-
-        :return: True if confirmation was given, False otherwise.
-        """
-        return False
-
-    def is_confirmation_needed(
-        self, request, redirect_uri, client, logout_hint
-    ) -> bool:
-        """Determine if an explicit confirmation by the user is needed for logout.
-
-        This method may be re-implemented. It returns False by default.
-
-        Example::
-
-            def is_confirmation_needed(
-                self, request, redirect_uri, client, logout_hint
-            ):
-                user = get_current_user()
-                if not user:
-                    return False
-
-                return user.is_admin
-
-        :param request: The OAuth2Request object.
-        :param redirect_uri: The requested redirect URI, or None.
-        :param client: The client object, or None.
-        :param logout_hint: The logout_hint parameter, or None.
-        :return: True if confirmation is needed, False otherwise.
-        """
-        return False
+        raise NotImplementedError()
