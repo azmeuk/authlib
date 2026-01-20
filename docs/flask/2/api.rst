@@ -27,7 +27,7 @@ Server.
 
         from authlib.integrations.flask_oauth2 import current_token
 
-        @require_oauth()
+        @require_oauth
         @app.route('/user_id')
         def user_id():
             # current token instance of the OAuth Token model
