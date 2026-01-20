@@ -56,6 +56,8 @@ Then create a logout route. You have two options:
         except OAuth2Error as error:
             return server.handle_error_response(None, error)
 
+        # Show confirmation page on GET when no id_token_hint was provided
+        # User confirms by submitting the form (POST)
         if req.needs_confirmation and request.method == 'GET':
             return render_template('confirm_logout.html', client=req.client)
 
@@ -105,6 +107,29 @@ Post-logout redirection only happens when:
 
 If all conditions are met, ``EndSessionRequest.redirect_uri`` contains the
 validated URI (with ``state`` appended if provided).
+
+If conditions are not met, ``create_endpoint_response`` returns ``None`` and
+you should provide a default logout page::
+
+    server.create_endpoint_response("end_session", req) or render_template('logged_out.html')
+
+Session Validation
+~~~~~~~~~~~~~~~~~~
+
+When an ``id_token_hint`` is provided, the ``id_token_claims`` attribute of
+:class:`EndSessionRequest` contains all claims from the ID Token, including
+``sid`` (session ID) if present.
+
+Per the specification, you SHOULD verify that the ``sid`` matches the current
+session to detect potentially suspect logout requests::
+
+    def end_session(self, end_session_request):
+        if end_session_request.id_token_claims:
+            sid = end_session_request.id_token_claims.get("sid")
+            if sid and sid != get_current_session_id():
+                # Treat as suspect - may require additional confirmation
+                pass
+        session.clear()
 
 Client Registration
 -------------------

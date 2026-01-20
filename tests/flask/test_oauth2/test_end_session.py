@@ -1,8 +1,9 @@
 """Tests for RP-Initiated Logout endpoint."""
 
 import pytest
+from joserfc import jwt
+from joserfc.jwk import KeySet
 
-from authlib.jose import jwt
 from authlib.oauth2.rfc6749.errors import OAuth2Error
 from authlib.oidc.rpinitiated import EndSessionEndpoint
 from authlib.oidc.rpinitiated import EndSessionRequest
@@ -15,8 +16,9 @@ from .models import db
 def create_id_token(claims):
     """Create a signed ID token for testing."""
     header = {"alg": "RS256"}
-    key = read_file_path("jwks_private.json")
-    return jwt.encode(header, claims, key).decode()
+    jwks = read_file_path("jwks_private.json")
+    key = KeySet.import_key_set(jwks)
+    return jwt.encode(header, claims, key)
 
 
 class MyEndSessionEndpoint(EndSessionEndpoint):

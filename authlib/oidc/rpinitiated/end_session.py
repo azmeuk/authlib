@@ -10,10 +10,11 @@ from dataclasses import field
 from typing import TYPE_CHECKING
 from typing import Any
 
+from joserfc import jwt
+from joserfc.errors import JoseError
+from joserfc.jwk import KeySet
+
 from authlib.common.urls import add_params_to_uri
-from authlib.jose import jwt
-from authlib.jose.errors import JoseError
-from authlib.jose.rfc7519 import JWTClaims
 from authlib.oauth2.rfc6749.endpoint import Endpoint
 from authlib.oauth2.rfc6749.endpoint import EndpointRequest
 from authlib.oauth2.rfc6749.errors import InvalidRequestError
@@ -22,16 +23,13 @@ if TYPE_CHECKING:
     from authlib.oauth2.rfc6749.requests import OAuth2Request
 
 
-class _NonExpiringJWTClaims(JWTClaims):
-    """JWTClaims that skips expiration validation.
-
-    Per the RP-Initiated Logout spec, expired tokens should be accepted.
-    """
+class _NonExpiringClaimsRegistry(jwt.JWTClaimsRegistry):
+    """Claims registry that skips expiration validation."""
 
     # rpinitiated §2: "The OP SHOULD accept ID Tokens when the RP identified by the
     # ID Token's aud claim and/or sid claim has a current session or had a
     # recent session at the OP, even when the exp time has passed."
-    def validate_exp(self, now, leeway):
+    def validate_exp(self, value: int) -> None:
         pass
 
 
@@ -50,12 +48,11 @@ class EndSessionRequest(EndpointRequest):
 
     @property
     def needs_confirmation(self) -> bool:
-        """Whether user confirmation is recommended before logout.
+        """Whether user confirmation is recommended before logout."""
 
-        rpinitiated §6: "Logout requests without a valid id_token_hint value are a
-        potential means of denial of service; therefore, OPs should obtain
-        explicit confirmation from the End-User before acting upon them."
-        """
+        # rpinitiated §6: "Logout requests without a valid id_token_hint value are a
+        # potential means of denial of service; therefore, OPs should obtain
+        # explicit confirmation from the End-User before acting upon them."
         return self.id_token_claims is None
 
 
@@ -197,18 +194,20 @@ class EndSessionEndpoint(Endpoint):
 
     def _validate_id_token_hint(self, id_token_hint: str) -> dict:
         """Validate that the OP was the issuer of the ID Token."""
+        jwks = self.get_server_jwks()
+        if isinstance(jwks, dict):
+            jwks = KeySet.import_key_set(jwks)
+
         # rpinitiated §4: "When the OP detects errors in the RP-Initiated
         # Logout request, the OP MUST not perform post-logout redirection."
         try:
-            claims = jwt.decode(
-                id_token_hint,
-                self.get_server_jwks(),
-                claims_cls=_NonExpiringJWTClaims,
-            )
-            claims.validate()
-            return dict(claims)
+            token = jwt.decode(id_token_hint, jwks)
+            claims_registry = _NonExpiringClaimsRegistry(nbf={"essential": False})
+            claims_registry.validate(token.claims)
         except JoseError as exc:
             raise InvalidRequestError(exc.description) from exc
+
+        return dict(token.claims)
 
     def resolve_client_from_id_token_claims(self, id_token_claims: dict):
         """Resolve client from id_token aud claim.
@@ -228,8 +227,6 @@ class EndSessionEndpoint(Endpoint):
         """Check if post_logout_redirect_uri is registered for the client."""
         registered_uris = client.client_metadata.get("post_logout_redirect_uris", [])
         return post_logout_redirect_uri in registered_uris
-
-    # --- Methods to implement in subclass ---
 
     def get_server_jwks(self):
         """Return the server's JSON Web Key Set for validating ID tokens.
