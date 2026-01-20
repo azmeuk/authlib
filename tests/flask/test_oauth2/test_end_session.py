@@ -30,6 +30,12 @@ class MyEndSessionEndpoint(EndSessionEndpoint):
     def get_client_by_id(self, client_id):
         return db.session.query(Client).filter_by(client_id=client_id).first()
 
+    def is_post_logout_redirect_uri_legitimate(
+        self, request, post_logout_redirect_uri, client, logout_hint
+    ):
+        # Allow redirect without id_token_hint for testing
+        return True
+
     def end_session(self, end_session_request):
         pass
 

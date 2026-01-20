@@ -156,6 +156,12 @@ class EndSessionEndpoint(Endpoint):
             and self._is_valid_post_logout_redirect_uri(
                 client, post_logout_redirect_uri
             )
+            and (
+                id_token_claims
+                or self.is_post_logout_redirect_uri_legitimate(
+                    request, post_logout_redirect_uri, client, logout_hint
+                )
+            )
         ):
             redirect_uri = post_logout_redirect_uri
             # rpinitiated §3: "If the post_logout_redirect_uri value is provided
@@ -201,7 +207,7 @@ class EndSessionEndpoint(Endpoint):
         # rpinitiated §4: "When the OP detects errors in the RP-Initiated
         # Logout request, the OP MUST not perform post-logout redirection."
         try:
-            token = jwt.decode(id_token_hint, jwks)
+            token = jwt.decode(id_token_hint, jwks, registry=self.get_server_registry())
             claims_registry = _NonExpiringClaimsRegistry(nbf={"essential": False})
             claims_registry.validate(token.claims)
         except JoseError as exc:
@@ -228,12 +234,43 @@ class EndSessionEndpoint(Endpoint):
         registered_uris = client.client_metadata.get("post_logout_redirect_uris", [])
         return post_logout_redirect_uri in registered_uris
 
+    def is_post_logout_redirect_uri_legitimate(
+        self,
+        request: OAuth2Request,
+        post_logout_redirect_uri: str,
+        client,
+        logout_hint: str | None,
+    ) -> bool:
+        """Confirm redirect_uri legitimacy when no id_token_hint is provided.
+
+        Override if you have alternative confirmation mechanisms, e.g.::
+
+            def is_post_logout_redirect_uri_legitimate(self, ...):
+                return client and client.is_trusted
+
+        By default returns False (no redirection without id_token_hint).
+        """
+        # rpinitiated §3: "if it is not supplied with post_logout_redirect_uri,
+        # the OP MUST NOT perform post-logout redirection unless the OP has
+        # other means of confirming the legitimacy"
+        return False
+
     def get_server_jwks(self):
         """Return the server's JSON Web Key Set for validating ID tokens.
 
         :returns: JWK Set (dict or KeySet)
         """
         raise NotImplementedError()
+
+    def get_server_registry(self):
+        """Return the joserfc registry for JWT decoding.
+
+        Override to customize algorithm validation. By default (None),
+        only recommended algorithms are allowed.
+
+        :returns: JWSRegistry instance or None
+        """
+        return None
 
     def get_client_by_id(self, client_id: str):
         """Fetch a client by its client_id.
@@ -248,6 +285,9 @@ class EndSessionEndpoint(Endpoint):
 
         Implement this method to perform the actual logout logic,
         such as clearing session data, revoking tokens, etc.
+
+        Use ``end_session_request.logout_hint`` to help identify the user
+        (e.g. email, username) when no ``id_token_hint`` is provided.
 
         :param end_session_request: The validated EndSessionRequest
         """
