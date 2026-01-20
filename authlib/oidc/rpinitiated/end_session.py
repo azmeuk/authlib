@@ -28,6 +28,9 @@ class _NonExpiringJWTClaims(JWTClaims):
     Per the RP-Initiated Logout spec, expired tokens should be accepted.
     """
 
+    # rpinitiated §2: "The OP SHOULD accept ID Tokens when the RP identified by the
+    # ID Token's aud claim and/or sid claim has a current session or had a
+    # recent session at the OP, even when the exp time has passed."
     def validate_exp(self, now, leeway):
         pass
 
@@ -49,9 +52,9 @@ class EndSessionRequest(EndpointRequest):
     def needs_confirmation(self) -> bool:
         """Whether user confirmation is recommended before logout.
 
-        Per the spec, logout requests without a valid id_token_hint are a
-        potential means of denial of service, so OPs should obtain explicit
-        confirmation from the End-User before acting upon them.
+        rpinitiated §6: "Logout requests without a valid id_token_hint value are a
+        potential means of denial of service; therefore, OPs should obtain
+        explicit confirmation from the End-User before acting upon them."
         """
         return self.id_token_claims is None
 
@@ -120,7 +123,8 @@ class EndSessionEndpoint(Endpoint):
         logout_hint = data.get("logout_hint")
         ui_locales = data.get("ui_locales")
 
-        # Validate id_token_hint if present
+        # rpinitiated §2: "When an id_token_hint parameter is present, the OP MUST
+        # validate that it was the issuer of the ID Token."
         id_token_claims = None
         if id_token_hint:
             id_token_claims = self._validate_id_token_hint(id_token_hint)
@@ -132,22 +136,32 @@ class EndSessionEndpoint(Endpoint):
         elif id_token_claims:
             client = self._resolve_client_from_id_token_claims(id_token_claims)
 
-        # Verify client_id matches id_token aud claim
+        # rpinitiated §2: "When both client_id and id_token_hint are present, the OP
+        # MUST verify that the Client Identifier matches the one used as the
+        # audience of the ID Token."
         if client_id and id_token_claims:
             aud = id_token_claims.get("aud")
             aud_list = [aud] if isinstance(aud, str) else (aud or [])
             if client_id not in aud_list:
                 raise InvalidRequestError("'client_id' does not match 'aud' claim")
 
-        # Validate post_logout_redirect_uri
+        # rpinitiated §3: "The OP MUST NOT perform post-logout redirection if
+        # the post_logout_redirect_uri value supplied does not exactly match
+        # one of the previously registered post_logout_redirect_uris values."
         redirect_uri = None
-        if post_logout_redirect_uri and client:
-            if self._is_valid_post_logout_redirect_uri(
+        if (
+            post_logout_redirect_uri
+            and client
+            and self._is_valid_post_logout_redirect_uri(
                 client, post_logout_redirect_uri
-            ):
-                redirect_uri = post_logout_redirect_uri
-                if state:
-                    redirect_uri = add_params_to_uri(redirect_uri, {"state": state})
+            )
+        ):
+            redirect_uri = post_logout_redirect_uri
+            # rpinitiated §3: "If the post_logout_redirect_uri value is provided
+            # and the preceding conditions are met, the OP MUST include the
+            # state value if the RP's initial Logout Request included state."
+            if state:
+                redirect_uri = add_params_to_uri(redirect_uri, {"state": state})
 
         return EndSessionRequest(
             request=request,
@@ -177,13 +191,9 @@ class EndSessionEndpoint(Endpoint):
         return 200, "Logged out", []
 
     def _validate_id_token_hint(self, id_token_hint: str) -> dict:
-        """Validate that the OP was the issuer of the ID Token.
-
-        Per the specification, expired tokens are accepted: "The OP SHOULD
-        accept ID Tokens when the RP identified by the ID Token's aud claim
-        and/or sid claim has a current session or had a recent session at
-        the OP, even when the exp time has passed."
-        """
+        """Validate that the OP was the issuer of the ID Token."""
+        # rpinitiated §4: "When the OP detects errors in the RP-Initiated
+        # Logout request, the OP MUST not perform post-logout redirection."
         try:
             claims = jwt.decode(
                 id_token_hint,

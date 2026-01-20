@@ -34,16 +34,12 @@ class ClientMetadataClaims(BaseClaims):
         self._validate_post_logout_redirect_uris()
 
     def _validate_post_logout_redirect_uris(self):
-        """post_logout_redirect_uris is an array of URLs supplied by the RP to which it MAY request that the
-        End-User's User Agent be redirected using the post_logout_redirect_uri
-        parameter after a logout has been performed.
-
-        These URLs SHOULD use the https scheme and MAY contain port, path, and
-        query parameter components; however, they MAY use the http scheme,
-        provided that the Client Type is confidential, as defined in
-        Section 2.1 of OAuth 2.0, and provided the OP allows the use of
-        http RP URIs.
-        """
+        # rpinitiated §3.1: "post_logout_redirect_uris - Array of URLs supplied
+        # by the RP to which it MAY request that the End-User's User Agent be
+        # redirected using the post_logout_redirect_uri parameter after a
+        # logout has been performed. These URLs SHOULD use the https scheme
+        # [...]; however, they MAY use the http scheme, provided that the
+        # Client Type is confidential."
         uris = self.get("post_logout_redirect_uris")
         if not uris:
             return
