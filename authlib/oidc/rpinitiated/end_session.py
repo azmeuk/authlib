@@ -138,7 +138,7 @@ class EndSessionEndpoint(Endpoint):
         if client_id:
             client = self.get_client_by_id(client_id)
         elif id_token_claims:
-            client = self._resolve_client_from_id_token_claims(id_token_claims)
+            client = self.resolve_client_from_id_token_claims(id_token_claims)
 
         # rpinitiated §2: "When both client_id and id_token_hint are present, the OP
         # MUST verify that the Client Identifier matches the one used as the
@@ -210,12 +210,12 @@ class EndSessionEndpoint(Endpoint):
         except JoseError as exc:
             raise InvalidRequestError(exc.description) from exc
 
-    def _resolve_client_from_id_token_claims(self, id_token_claims: dict):
+    def resolve_client_from_id_token_claims(self, id_token_claims: dict):
         """Resolve client from id_token aud claim.
 
         When aud is a single string, resolves the client directly.
         When aud is a list, returns None (ambiguous case).
-        Subclasses can override for custom resolution logic.
+        Override for custom resolution logic.
         """
         aud = id_token_claims.get("aud")
         if isinstance(aud, str):
