@@ -66,22 +66,25 @@ class Endpoint:
 
     def create_response(
         self, validated_request: EndpointRequest
-    ) -> tuple[int, Any, list]:
+    ) -> tuple[int, Any, list] | None:
         """Create the HTTP response from a validated request.
 
         :param validated_request: The validated EndpointRequest
-        :returns: Tuple of (status_code, body, headers)
+        :returns: Tuple of (status_code, body, headers), or None if the
+            application should provide its own response
         """
         raise NotImplementedError()
 
-    def create_endpoint_response(self, request: OAuth2Request) -> tuple[int, Any, list]:
+    def create_endpoint_response(
+        self, request: OAuth2Request
+    ) -> tuple[int, Any, list] | None:
         """Validate and respond in one step (non-interactive mode).
 
         :param request: The OAuth2Request to process
-        :returns: Tuple of (status_code, body, headers)
+        :returns: Tuple of (status_code, body, headers), or None
         """
         validated = self.validate_request(request)
         return self.create_response(validated)
 
-    def __call__(self, request: OAuth2Request) -> tuple[int, Any, list]:
+    def __call__(self, request: OAuth2Request) -> tuple[int, Any, list] | None:
         return self.create_endpoint_response(request)

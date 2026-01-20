@@ -42,7 +42,10 @@ Then create a logout route. You have two options:
 
     @app.route('/logout', methods=['GET', 'POST'])
     def logout():
-        return server.create_endpoint_response("end_session")
+        return (
+            server.create_endpoint_response("end_session")
+            or render_template('logged_out.html')
+        )
 
 **Interactive mode** (with confirmation page)::
 
@@ -56,7 +59,13 @@ Then create a logout route. You have two options:
         if req.needs_confirmation and request.method == 'GET':
             return render_template('confirm_logout.html', client=req.client)
 
-        return server.create_endpoint_response("end_session", req)
+        return (
+            server.create_endpoint_response("end_session", req)
+            or render_template('logged_out.html')
+        )
+
+The ``create_endpoint_response`` method returns ``None`` when there is no
+``post_logout_redirect_uri``, allowing you to provide your own response page.
 
 Request Parameters
 ~~~~~~~~~~~~~~~~~~

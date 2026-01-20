@@ -96,13 +96,17 @@ class EndSessionEndpoint(Endpoint):
             if req.needs_confirmation and request.method == "GET":
                 return render_template("confirm_logout.html", client=req.client)
 
-            return server.create_endpoint_response("end_session", req)
+            return server.create_endpoint_response(
+                "end_session", req
+            ) or render_template("logged_out.html")
 
     For non-interactive usage (no confirmation page), use the standard pattern::
 
         @app.route("/logout", methods=["GET", "POST"])
         def logout():
-            return server.create_endpoint_response("end_session")
+            return server.create_endpoint_response("end_session") or render_template(
+                "logged_out.html"
+            )
     """
 
     ENDPOINT_NAME = "end_session"
@@ -174,21 +178,22 @@ class EndSessionEndpoint(Endpoint):
 
     def create_response(
         self, validated_request: EndpointRequest
-    ) -> tuple[int, Any, list]:
+    ) -> tuple[int, Any, list] | None:
         """Create the end session HTTP response.
 
         Executes the logout via :meth:`end_session`, then returns a redirect
-        response if a valid redirect_uri is present, or a simple success response.
+        response if a valid redirect_uri is present, or None to let the
+        application provide its own response.
 
         :param validated_request: The validated EndSessionRequest
-        :returns: Tuple of (status_code, body, headers)
+        :returns: Tuple of (status_code, body, headers) for redirect, or None
         """
         req: EndSessionRequest = validated_request  # type: ignore[assignment]
         self.end_session(req)
 
         if req.redirect_uri:
             return 302, "", [("Location", req.redirect_uri)]
-        return 200, "Logged out", []
+        return None
 
     def _validate_id_token_hint(self, id_token_hint: str) -> dict:
         """Validate that the OP was the issuer of the ID Token."""

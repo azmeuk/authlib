@@ -41,7 +41,7 @@ def endpoint_server(server, app):
     @app.route("/logout", methods=["GET", "POST"])
     def logout():
         # Non-interactive mode: validate and respond in one step
-        return server.create_endpoint_response("end_session")
+        return server.create_endpoint_response("end_session") or "Logged out"
 
     @app.route("/logout_interactive", methods=["GET", "POST"])
     def logout_interactive():
@@ -56,7 +56,7 @@ def endpoint_server(server, app):
         if req.needs_confirmation and request.method == "GET":
             return "Confirm logout", 200
 
-        return server.create_endpoint_response("end_session", req)
+        return server.create_endpoint_response("end_session", req) or "Logged out"
 
     return server
 

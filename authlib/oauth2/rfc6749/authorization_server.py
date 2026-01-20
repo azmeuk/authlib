@@ -316,7 +316,7 @@ class AuthorizationServer(Hookable):
 
         :param name: Endpoint name
         :param request: HTTP request instance or validated EndpointRequest
-        :return: Response
+        :return: Response, or None if the endpoint returns None
         """
         if name not in self._endpoints:
             raise RuntimeError(f"There is no '{name}' endpoint.")
@@ -327,7 +327,10 @@ class AuthorizationServer(Hookable):
         if isinstance(request, EndpointRequest):
             endpoint = endpoints[0]
             try:
-                return self.handle_response(*endpoint.create_response(request))
+                result = endpoint.create_response(request)
+                if result is None:
+                    return None
+                return self.handle_response(*result)
             except OAuth2Error as error:
                 return self.handle_error_response(request.request, error)
 
@@ -335,7 +338,10 @@ class AuthorizationServer(Hookable):
         for endpoint in endpoints:
             request = endpoint.create_endpoint_request(request)
             try:
-                return self.handle_response(*endpoint(request))
+                result = endpoint(request)
+                if result is None:
+                    return None
+                return self.handle_response(*result)
             except ContinueIteration:
                 continue
             except OAuth2Error as error:
