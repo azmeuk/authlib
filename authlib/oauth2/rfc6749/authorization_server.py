@@ -295,10 +295,10 @@ class AuthorizationServer(Hookable):
 
         Example::
 
-            end_session_req = server.validate_endpoint_request("end_session")
-            if end_session_req.needs_confirmation:
+            req = server.validate_endpoint_request("end_session")
+            if req.needs_confirmation:
                 return render_template("confirm_logout.html", ...)
-            return server.create_endpoint_response("end_session", end_session_req)
+            return server.create_endpoint_response("end_session", req)
         """
         if name not in self._endpoints:
             raise RuntimeError(f"There is no '{name}' endpoint.")

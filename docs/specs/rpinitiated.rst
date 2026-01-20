@@ -49,18 +49,14 @@ Then create a logout route. You have two options:
     @app.route('/logout', methods=['GET', 'POST'])
     def logout():
         try:
-            end_session_req = server.validate_endpoint_request("end_session")
+            req = server.validate_endpoint_request("end_session")
         except OAuth2Error as error:
             return server.handle_error_response(None, error)
 
-        if end_session_req.needs_confirmation and request.method == 'GET':
-            # Render your own confirmation page
-            return render_template(
-                'confirm_logout.html',
-                client=end_session_req.client,
-            )
+        if req.needs_confirmation and request.method == 'GET':
+            return render_template('confirm_logout.html', client=req.client)
 
-        return server.create_endpoint_response("end_session", end_session_req)
+        return server.create_endpoint_response("end_session", req)
 
 Request Parameters
 ~~~~~~~~~~~~~~~~~~
