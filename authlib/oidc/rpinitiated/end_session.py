@@ -13,6 +13,7 @@ from typing import Any
 from joserfc import jwt
 from joserfc.errors import JoseError
 from joserfc.jwk import KeySet
+from joserfc.jws import JWSRegistry
 
 from authlib.common.urls import add_params_to_uri
 from authlib.oauth2.rfc6749.endpoint import Endpoint
@@ -215,7 +216,7 @@ class EndSessionEndpoint(Endpoint):
 
         return dict(token.claims)
 
-    def resolve_client_from_id_token_claims(self, id_token_claims: dict):
+    def resolve_client_from_id_token_claims(self, id_token_claims: dict) -> Any | None:
         """Resolve client from id_token aud claim.
 
         When aud is a single string, resolves the client directly.
@@ -255,32 +256,23 @@ class EndSessionEndpoint(Endpoint):
         # other means of confirming the legitimacy"
         return False
 
-    def get_server_jwks(self):
-        """Return the server's JSON Web Key Set for validating ID tokens.
-
-        :returns: JWK Set (dict or KeySet)
-        """
+    def get_server_jwks(self) -> dict | KeySet:
+        """Return the server's JSON Web Key Set for validating ID tokens."""
         raise NotImplementedError()
 
-    def get_server_registry(self):
+    def get_server_registry(self) -> JWSRegistry | None:
         """Return the joserfc registry for JWT decoding.
 
         Override to customize algorithm validation. By default (None),
         only recommended algorithms are allowed.
-
-        :returns: JWSRegistry instance or None
         """
         return None
 
-    def get_client_by_id(self, client_id: str):
-        """Fetch a client by its client_id.
-
-        :param client_id: The client identifier
-        :returns: Client object or None
-        """
+    def get_client_by_id(self, client_id: str) -> Any | None:
+        """Fetch a client by its client_id."""
         raise NotImplementedError()
 
-    def end_session(self, end_session_request: EndSessionRequest):
+    def end_session(self, end_session_request: EndSessionRequest) -> None:
         """Terminate the user's session.
 
         Implement this method to perform the actual logout logic,
