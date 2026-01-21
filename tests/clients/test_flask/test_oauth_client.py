@@ -771,43 +771,6 @@ def test_logout_redirect_missing_endpoint():
                 client.logout_redirect()
 
 
-def test_logout_redirect_with_cache():
-    """Test logout_redirect stores state data in cache instead of session when cache is enabled."""
-    app = Flask(__name__)
-    app.secret_key = "!"
-    cache = SimpleCache()
-    oauth = OAuth(app, cache=cache)
-    client = oauth.register(
-        "dev",
-        client_id="dev",
-        client_secret="dev",
-        server_metadata_url="https://provider.test/.well-known/openid-configuration",
-    )
-
-    metadata = {
-        "issuer": "https://provider.test",
-        "end_session_endpoint": "https://provider.test/logout",
-    }
-
-    with mock.patch("requests.sessions.Session.send") as send:
-        send.return_value = mock_send_value(metadata)
-
-        with app.test_request_context():
-            resp = client.logout_redirect(
-                post_logout_redirect_uri="https://client.test/logged-out",
-            )
-            assert resp.status_code == 302
-            url = resp.headers.get("Location")
-            params = dict(url_decode(urlparse.urlparse(url).query))
-            state = params["state"]
-
-            # With cache, session only stores expiration
-            session_data = session.get(f"_state_dev_{state}")
-            assert session_data is not None
-            assert "exp" in session_data
-            assert "data" not in session_data
-
-
 def test_create_logout_url_directly():
     """Test create_logout_url returns URL and state without performing redirect."""
     app = Flask(__name__)

@@ -40,6 +40,27 @@ class MyEndSessionEndpoint(EndSessionEndpoint):
         pass
 
 
+class DefaultLegitimacyEndpoint(MyEndSessionEndpoint):
+    """Endpoint that uses default is_post_logout_redirect_uri_legitimate."""
+
+    def is_post_logout_redirect_uri_legitimate(
+        self, request, post_logout_redirect_uri, client, logout_hint
+    ):
+        # Call parent's default implementation
+        return EndSessionEndpoint.is_post_logout_redirect_uri_legitimate(
+            self, request, post_logout_redirect_uri, client, logout_hint
+        )
+
+
+class ErrorRaisingEndpoint(MyEndSessionEndpoint):
+    """Endpoint that raises error in end_session."""
+
+    def end_session(self, end_session_request):
+        from authlib.oauth2.rfc6749.errors import InvalidRequestError
+
+        raise InvalidRequestError("Session termination failed")
+
+
 @pytest.fixture
 def endpoint_server(server, app):
     """Server with EndSessionEndpoint registered."""
@@ -404,3 +425,62 @@ def test_redirect_requires_client(test_client, endpoint_server, client_model):
 
     assert rv.status_code == 200
     assert rv.data == b"Logged out"  # No redirect
+
+
+def test_interactive_mode_error_handling(test_client, endpoint_server, client_model):
+    """Error during validation returns error response in interactive mode."""
+    rv = test_client.get("/logout_interactive?id_token_hint=invalid.jwt.token")
+
+    assert rv.status_code == 400
+    assert rv.json["error"] == "invalid_request"
+
+
+def test_validate_unknown_endpoint(server):
+    """validate_endpoint_request with unknown endpoint raises RuntimeError."""
+    with pytest.raises(RuntimeError, match="There is no 'unknown' endpoint"):
+        server.validate_endpoint_request("unknown")
+
+
+def test_create_endpoint_response_unknown_endpoint(server):
+    """create_endpoint_response with unknown endpoint raises RuntimeError."""
+    with pytest.raises(RuntimeError, match="There is no 'unknown' endpoint"):
+        server.create_endpoint_response("unknown")
+
+
+def test_default_is_post_logout_redirect_uri_legitimate(
+    server, app, test_client, client_model, valid_id_token
+):
+    """Default is_post_logout_redirect_uri_legitimate returns False."""
+    endpoint = DefaultLegitimacyEndpoint()
+    server.register_endpoint(endpoint)
+
+    @app.route("/logout_default", methods=["GET", "POST"])
+    def logout_default():
+        return server.create_endpoint_response("end_session") or "Logged out"
+
+    # Without id_token_hint, redirect should be ignored (default returns False)
+    rv = test_client.get(
+        "/logout_default?"
+        "client_id=client-id"
+        "&post_logout_redirect_uri=https://client.test/logout"
+    )
+    assert rv.status_code == 200
+    assert rv.data == b"Logged out"  # No redirect
+
+
+def test_create_endpoint_response_with_validated_request_error(
+    server, app, test_client, client_model, valid_id_token
+):
+    """Error in create_response with validated request returns error response."""
+    endpoint = ErrorRaisingEndpoint()
+    server.register_endpoint(endpoint)
+
+    @app.route("/logout_error", methods=["GET", "POST"])
+    def logout_error():
+        req = server.validate_endpoint_request("end_session")
+        return server.create_endpoint_response("end_session", req)
+
+    rv = test_client.get(f"/logout_error?id_token_hint={valid_id_token}")
+    assert rv.status_code == 400
+    assert rv.json["error"] == "invalid_request"
+    assert "Session termination failed" in rv.json["error_description"]
