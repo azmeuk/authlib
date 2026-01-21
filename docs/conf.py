@@ -27,6 +27,7 @@ language = "en"
 extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.extlinks",
+    "sphinx.ext.intersphinx",
     "sphinx_copybutton",
     "sphinx_design",
 ]
@@ -38,6 +39,7 @@ extlinks = {
 
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
+    "joserfc": ("https://jose.authlib.org/en/", None),
 }
 html_favicon = "_static/icon.svg"
 html_theme_options = {
