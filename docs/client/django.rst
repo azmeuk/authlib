@@ -158,6 +158,7 @@ to redirect users to the provider's end session endpoint::
         )
 
     def logged_out(request):
+        state_data = oauth.google.validate_logout_response(request)
         return HttpResponse('You have been logged out.')
 
 .. _OpenID Connect RP-Initiated Logout: https://openid.net/specs/openid-connect-rpinitiated-1_0.html

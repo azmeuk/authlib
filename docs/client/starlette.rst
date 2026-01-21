@@ -133,6 +133,7 @@ to redirect users to the provider's end session endpoint::
 
     @app.route('/logged-out')
     async def logged_out(request):
+        state_data = await oauth.google.validate_logout_response(request)
         return PlainTextResponse('You have been logged out.')
 
 .. _OpenID Connect RP-Initiated Logout: https://openid.net/specs/openid-connect-rpinitiated-1_0.html
