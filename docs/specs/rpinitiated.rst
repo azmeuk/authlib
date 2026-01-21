@@ -27,9 +27,6 @@ and implement the required methods::
         def get_server_jwks(self):
             return load_jwks()
 
-        def get_client_by_id(self, client_id):
-            return Client.query.filter_by(client_id=client_id).first()
-
         def end_session(self, end_session_request):
             # Terminate user session
             session.clear()

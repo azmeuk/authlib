@@ -74,9 +74,6 @@ class EndSessionEndpoint(Endpoint):
             def get_server_jwks(self):
                 return load_jwks()
 
-            def get_client_by_id(self, client_id):
-                return Client.query.filter_by(client_id=client_id).first()
-
             def end_session(self, end_session_request):
                 session.clear()
 
@@ -134,7 +131,7 @@ class EndSessionEndpoint(Endpoint):
         # Resolve client
         client = None
         if client_id:
-            client = self.get_client_by_id(client_id)
+            client = self.server.query_client(client_id)
         elif id_token_claims:
             client = self.resolve_client_from_id_token_claims(id_token_claims)
 
@@ -225,7 +222,7 @@ class EndSessionEndpoint(Endpoint):
         """
         aud = id_token_claims.get("aud")
         if isinstance(aud, str):
-            return self.get_client_by_id(aud)
+            return self.server.query_client(aud)
         return None
 
     def _is_valid_post_logout_redirect_uri(
@@ -267,10 +264,6 @@ class EndSessionEndpoint(Endpoint):
         only recommended algorithms are allowed.
         """
         return None
-
-    def get_client_by_id(self, client_id: str) -> Any | None:
-        """Fetch a client by its client_id."""
-        raise NotImplementedError()
 
     def end_session(self, end_session_request: EndSessionRequest) -> None:
         """Terminate the user's session.

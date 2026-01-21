@@ -11,7 +11,6 @@ from authlib.oidc.rpinitiated import EndSessionRequest
 from tests.util import read_file_path
 
 from .models import Client
-from .models import db
 
 
 def create_id_token(claims):
@@ -27,9 +26,6 @@ class MyEndSessionEndpoint(EndSessionEndpoint):
 
     def get_server_jwks(self):
         return read_file_path("jwks_public.json")
-
-    def get_client_by_id(self, client_id):
-        return db.session.query(Client).filter_by(client_id=client_id).first()
 
     def is_post_logout_redirect_uri_legitimate(
         self, request, post_logout_redirect_uri, client, logout_hint
