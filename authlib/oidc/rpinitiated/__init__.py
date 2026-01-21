@@ -1,5 +1,5 @@
 """authlib.oidc.rpinitiated.
-~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 OpenID Connect RP-Initiated Logout 1.0 Implementation.
 

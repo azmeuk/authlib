@@ -178,8 +178,8 @@ class EndSessionEndpoint(Endpoint):
         )
 
     def create_response(
-        self, validated_request: EndpointRequest
-    ) -> tuple[int, Any, list] | None:
+        self, validated_request: EndSessionRequest
+    ) -> tuple[int, Any, list[tuple[str, str]]] | None:
         """Create the end session HTTP response.
 
         Executes the logout via :meth:`end_session`, then returns a redirect
@@ -198,6 +198,9 @@ class EndSessionEndpoint(Endpoint):
 
     def _validate_id_token_hint(self, id_token_hint: str) -> dict:
         """Validate that the OP was the issuer of the ID Token."""
+        # rpinitiated §2: "When an id_token_hint parameter is present, the OP MUST
+        # validate that it was the issuer of the ID Token."
+        # This is done by verifying the signature against the server's JWKS.
         jwks = self.get_server_jwks()
         if isinstance(jwks, dict):
             jwks = KeySet.import_key_set(jwks)
