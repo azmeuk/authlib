@@ -480,3 +480,23 @@ def test_create_endpoint_response_with_validated_request_error(
     assert rv.status_code == 400
     assert rv.json["error"] == "invalid_request"
     assert "Session termination failed" in rv.json["error_description"]
+
+
+def test_ui_locales_extracted(server, app, test_client, client_model, valid_id_token):
+    """ui_locales parameter is extracted and available in EndSessionRequest."""
+    endpoint = MyEndSessionEndpoint()
+    server.register_endpoint(endpoint)
+
+    captured = {}
+
+    @app.route("/logout_locales", methods=["GET", "POST"])
+    def logout_locales():
+        req = server.validate_endpoint_request("end_session")
+        captured["ui_locales"] = req.ui_locales
+        return server.create_endpoint_response("end_session", req) or "Logged out"
+
+    rv = test_client.get(
+        f"/logout_locales?id_token_hint={valid_id_token}&ui_locales=fr-FR%20en"
+    )
+    assert rv.status_code == 200
+    assert captured["ui_locales"] == "fr-FR en"
