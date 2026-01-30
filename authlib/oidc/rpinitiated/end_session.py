@@ -208,7 +208,7 @@ class EndSessionEndpoint(Endpoint):
         # rpinitiated §4: "When the OP detects errors in the RP-Initiated
         # Logout request, the OP MUST not perform post-logout redirection."
         try:
-            token = jwt.decode(id_token_hint, jwks, registry=self.get_server_registry())
+            token = jwt.decode(id_token_hint, jwks, algorithms=self.get_algorithms())
             claims_registry = _NonExpiringClaimsRegistry(nbf={"essential": False})
             claims_registry.validate(token.claims)
         except JoseError as exc:
@@ -260,13 +260,16 @@ class EndSessionEndpoint(Endpoint):
         """Return the server's JSON Web Key Set for validating ID tokens."""
         raise NotImplementedError()
 
-    def get_server_registry(self) -> JWSRegistry | None:
-        """Return the joserfc registry for JWT decoding.
+    def get_algorithms(self) -> list[str]:
+        """Return the list of allowed algorithms for ID token validation.
 
-        Override to customize algorithm validation. By default (None),
-        only recommended algorithms are allowed.
+        By default, returns all algorithms compatible with the keys in the JWKS.
+        Override to restrict to specific algorithms.
         """
-        return None
+        jwks = self.get_server_jwks()
+        if isinstance(jwks, dict):
+            jwks = KeySet.import_key_set(jwks)
+        return [alg.name for alg in JWSRegistry.filter_algorithms(jwks)]
 
     def end_session(self, end_session_request: EndSessionRequest) -> None:
         """Terminate the user's session.
