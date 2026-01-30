@@ -1,6 +1,6 @@
 import pytest
+from joserfc.errors import InvalidClaimError
 
-from authlib.jose.errors import InvalidClaimError
 from authlib.oidc import discovery
 from authlib.oidc import rpinitiated
 from authlib.oidc.rpinitiated import ClientMetadataClaims

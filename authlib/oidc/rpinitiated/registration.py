@@ -3,10 +3,11 @@
 https://openid.net/specs/openid-connect-rpinitiated-1_0.html
 """
 
+from joserfc.errors import InvalidClaimError
+
 from authlib.common.security import is_secure_transport
 from authlib.common.urls import is_valid_url
-from authlib.jose import BaseClaims
-from authlib.jose.errors import InvalidClaimError
+from authlib.oauth2.claims import BaseClaims
 
 
 class ClientMetadataClaims(BaseClaims):
@@ -29,8 +30,8 @@ class ClientMetadataClaims(BaseClaims):
         "post_logout_redirect_uris",
     ]
 
-    def validate(self):
-        self._validate_essential_claims()
+    def validate(self, now=None, leeway=0):
+        super().validate(now, leeway)
         self._validate_post_logout_redirect_uris()
 
     def _validate_post_logout_redirect_uris(self):
