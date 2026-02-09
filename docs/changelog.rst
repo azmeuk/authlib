@@ -6,7 +6,7 @@ Changelog
 
 Here you can see the full list of changes between each Authlib release.
 
-Version 1.6.7
+Version 1.7.0
 -------------
 
 **Unreleased**
@@ -21,6 +21,8 @@ Version 1.6.7
 - Allow ``AuthorizationServerMetadata.validate()`` to compose with RFC extension classes.
 - Fix ``expires_at=0`` being incorrectly treated as ``None``. :issue:`530`
 - Allow ``ResourceProtector`` decorator to be used without parentheses. :issue:`604`
+
+Upgrade Guide: :ref:`joserfc_upgrade`.
 
 Version 1.6.6
 -------------

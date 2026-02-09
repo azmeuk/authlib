@@ -1,3 +1,5 @@
+.. _joserfc_upgrade:
+
 1.7: Upgrade to joserfc
 =======================
 
@@ -77,3 +79,36 @@ Most deprecation warnings are triggered by how keys are imported. For security
 reasons, joserfc_ requires explicit key types. Instead of passing raw strings or
 bytes as keys, you should return ``OctKey``, ``RSAKey``, ``ECKey``, ``OKPKey``,
 or ``KeySet`` instances directly.
+
+``get_jwt_config``
+------------------
+
+``get_jwt_config`` is converted into 3 methods:
+
+1. ``resolve_client_private_key``
+2. ``get_client_claims``
+3. ``get_client_algorithm``
+
+.. code-block:: python
+
+    # before 1.7
+    class OpenIDCode(grants.OpenIDCode):
+        def get_jwt_config(self):
+            return {
+                'key': read_private_key_file(key_path),
+                'alg': 'RS512',
+                'iss': 'https://example.com',
+                'exp': 3600
+            }
+
+    # authlib>=1.7
+    class OpenIDCode(grants.OpenIDCode):
+        def resolve_client_private_key(self, client):
+            with open(jwks_file_path) as f:
+                data = json.load(f)
+            return KeySet.import_key_set(data)
+
+        def get_client_claims(self, client):
+            return {
+                'iss': 'https://example.com',
+            }
