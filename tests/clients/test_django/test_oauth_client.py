@@ -1,14 +1,16 @@
+import time
 from unittest import mock
 
 import pytest
 from django.test import override_settings
+from joserfc import jwk
+from joserfc import jwt
 
 from authlib.common.urls import url_decode
 from authlib.common.urls import urlparse
 from authlib.integrations.django_client import OAuth
 from authlib.integrations.django_client import OAuthError
-from authlib.jose import JsonWebKey
-from authlib.oidc.core.grants.util import generate_id_token
+from authlib.oidc.core.grants.util import create_half_hash
 
 from ..util import get_bearer_token
 from ..util import mock_send_value
@@ -209,7 +211,7 @@ def test_oauth2_authorize_code_verifier(factory):
 def test_openid_authorize(factory):
     request = factory.get("/login")
     request.session = factory.session
-    secret_key = JsonWebKey.import_key("secret", {"kty": "oct", "kid": "f"})
+    secret_key = jwk.import_key("secret", "oct")
 
     oauth = OAuth()
     client = oauth.register(
@@ -229,16 +231,19 @@ def test_openid_authorize(factory):
     query_data = dict(url_decode(urlparse.urlparse(url).query))
 
     token = get_bearer_token()
-    token["id_token"] = generate_id_token(
-        token,
-        {"sub": "123"},
-        secret_key,
-        alg="HS256",
-        iss="https://provider.test",
-        aud="dev",
-        exp=3600,
-        nonce=query_data["nonce"],
-    )
+    now = int(time.time())
+    claims = {
+        "sub": "123",
+        "iss": "https://provider.test",
+        "aud": "dev",
+        "iat": now,
+        "auth_time": now,
+        "exp": now + 3600,
+        "nonce": query_data["nonce"],
+        "at_hash": create_half_hash(token["access_token"], "HS256").decode("utf-8"),
+    }
+    id_token = jwt.encode({"alg": "HS256"}, claims, secret_key)
+    token["id_token"] = id_token
     state = query_data["state"]
     with mock.patch("requests.sessions.Session.send") as send:
         send.return_value = mock_send_value(token)
