@@ -30,7 +30,7 @@ jobs:
         - version: "3.12"
         - version: "3.13"
         - version: "3.14"
-        - version: "pypy@3.10"
+        - version: "pypy@3.11"
 
     steps:
     - uses: actions/checkout@v6
