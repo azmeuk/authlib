@@ -21,6 +21,7 @@ Version 1.7.0
 - Allow ``AuthorizationServerMetadata.validate()`` to compose with RFC extension classes.
 - Fix ``expires_at=0`` being incorrectly treated as ``None``. :issue:`530`
 - Allow ``ResourceProtector`` decorator to be used without parentheses. :issue:`604`
+- Implement RFC9700 PKCE downgrade countermeasure.
 
 Upgrade Guide: :ref:`joserfc_upgrade`.
 
