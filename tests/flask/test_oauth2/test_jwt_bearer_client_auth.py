@@ -39,8 +39,11 @@ def client(client, db):
     return client
 
 
-def register_jwt_client_auth(server, validate_jti=True, issuer=None):
+def register_jwt_client_auth(server, validate_jti=True):
     class JWTClientAuth(JWTBearerClientAssertion):
+        def get_audiences(self):
+            return ["https://provider.test/oauth/token"]
+
         def validate_jti(self, claims, jti):
             return jti != "used"
 
@@ -51,7 +54,7 @@ def register_jwt_client_auth(server, validate_jti=True, issuer=None):
 
     server.register_client_auth_method(
         JWTClientAuth.CLIENT_AUTH_METHOD,
-        JWTClientAuth("https://provider.test/oauth/token", validate_jti, issuer=issuer),
+        JWTClientAuth(validate_jti=validate_jti),
     )
 
 
@@ -304,7 +307,22 @@ def test_missing_jti(test_client, server):
 def test_issuer_as_audience(test_client, server):
     """Per RFC 7523 Section 3 and draft-ietf-oauth-rfc7523bis, the AS issuer
     identifier should be a valid audience value for client assertion JWTs."""
-    register_jwt_client_auth(server, issuer="https://provider.test")
+
+    class JWTClientAuth(JWTBearerClientAssertion):
+        def get_audiences(self):
+            return ["https://provider.test/oauth/token", "https://provider.test"]
+
+        def validate_jti(self, claims, jti):
+            return True
+
+        def resolve_client_public_key(self, client, headers):
+            return client.client_secret
+
+    server.register_client_auth_method(
+        JWTClientAuth.CLIENT_AUTH_METHOD,
+        JWTClientAuth(),
+    )
+
     key = OctKey.import_key("client-secret")
     claims = {
         "iss": "client-id",
