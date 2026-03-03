@@ -57,6 +57,12 @@ class JWTBearerGrant(BaseGrant, TokenEndpointMixin):
         audiences = self.get_audiences()
         if audiences:
             options["aud"] = {"essential": True, "values": audiences}
+        else:
+            deprecate(
+                "'get_audiences' must return a non-empty list. "
+                "Audience validation will become mandatory.",
+                version="1.8",
+            )
 
         claims_requests = jwt.JWTClaimsRegistry(leeway=self.LEEWAY, **options)
         try:

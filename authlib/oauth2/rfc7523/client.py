@@ -28,9 +28,13 @@ class JWTBearerClientAssertion:
     #: Name of the client authentication method
     CLIENT_AUTH_METHOD = "client_assertion_jwt"
 
-    def __init__(self, token_url, validate_jti=True, leeway=60, issuer=None):
+    def __init__(self, token_url=None, validate_jti=True, leeway=60):
+        if token_url is not None:  # pragma: no cover
+            deprecate(
+                "'token_url' is deprecated. Override 'get_audiences' instead.",
+                version="1.8",
+            )
         self.token_url = token_url
-        self.issuer = issuer
         self._validate_jti = validate_jti
         # A small allowance of time, typically no more than a few minutes,
         # to account for clock skew. The default is 60 seconds.
@@ -65,16 +69,10 @@ class JWTBearerClientAssertion:
 
     def verify_claims(self, claims: jwt.Claims):
         # iss and sub MUST be the client_id
-        # Per RFC 7523 Section 3 and draft-ietf-oauth-rfc7523bis, both the
-        # token endpoint URL and the AS issuer identifier are valid audiences.
-        aud_values = [self.token_url]
-        if self.issuer:
-            aud_values.append(self.issuer)
-
         options = {
             "iss": {"essential": True},
             "sub": {"essential": True},
-            "aud": {"essential": True, "values": aud_values},
+            "aud": {"essential": True, "values": self.get_audiences()},
             "exp": {"essential": True},
         }
         claims_requests = jwt.JWTClaimsRegistry(leeway=self.leeway, **options)
@@ -94,6 +92,22 @@ class JWTBearerClientAssertion:
 
             if not self.validate_jti(claims, claims["jti"]):
                 raise InvalidClientError(description="JWT ID is used before.")
+
+    def get_audiences(self):
+        """Return a list of valid audience identifiers for this authorization
+        server. Per RFC 7523 Section 3, the audience identifies the
+        authorization server as an intended audience.
+
+        Developers MUST implement this method::
+
+            def get_audiences(self):
+                return ["https://example.com/oauth/token", "https://example.com"]
+
+        :return: list of valid audience strings
+        """
+        if self.token_url is not None:  # pragma: no cover
+            return [self.token_url]
+        raise NotImplementedError()  # pragma: no cover
 
     def process_assertion_claims(self, assertion, resolve_key):
         """Extract JWT payload claims from request "assertion", per
