@@ -305,6 +305,43 @@ async def test_oauth2_authorize_no_url():
 
 
 @pytest.mark.asyncio
+async def test_oauth2_fetch_metadata():
+    def assert_headers(req):
+        assert "Authlib/" in req.headers.get("user-agent", "")
+
+    oauth = OAuth()
+    transport = ASGITransport(
+        AsyncPathMapDispatch(
+            path_maps={
+                "/.well-known/openid-configuration": {
+                    "body": {
+                        "authorization_endpoint": "https://provider.test/authorize",
+                        "jwks_uri": "https://provider.test/.well-known/keys",
+                    }
+                },
+                "/.well-known/keys": {"body": {"keys": []}},
+            },
+            side_effects={
+                "/.well-known/openid-configuration": assert_headers,
+                "/.well-known/keys": assert_headers,
+            },
+        )
+    )
+    client = oauth.register(
+        "dev",
+        client_id="dev",
+        client_secret="dev",
+        api_base_url="https://resource.test/api",
+        access_token_url="https://provider.test/token",
+        server_metadata_url="https://provider.test/.well-known/openid-configuration",
+        client_kwargs={
+            "transport": transport,
+        },
+    )
+    await client.fetch_jwk_set()
+
+
+@pytest.mark.asyncio
 async def test_oauth2_authorize_with_metadata():
     oauth = OAuth()
     transport = ASGITransport(

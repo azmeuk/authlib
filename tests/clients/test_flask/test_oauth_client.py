@@ -331,6 +331,51 @@ def test_oauth2_authorize_via_custom_client():
         assert url.startswith("https://provider.test/custom?")
 
 
+def test_oauth2_fetch_metadata():
+    app = Flask(__name__)
+    app.secret_key = "!"
+    oauth = OAuth(app)
+    client = oauth.register(
+        "dev",
+        client_id="dev",
+        client_secret="dev",
+        api_base_url="https://resource.test/api",
+        access_token_url="https://provider.test/token",
+    )
+    with pytest.raises(RuntimeError):
+        client.create_authorization_url(None)
+
+    client = oauth.register(
+        "dev2",
+        client_id="dev",
+        client_secret="dev",
+        api_base_url="https://resource.test/api",
+        access_token_url="https://provider.test/token",
+        server_metadata_url="https://provider.test/.well-known/openid-configuration",
+    )
+    with mock.patch("requests.sessions.Session.send") as send:
+
+        def check_request(req, **kwargs):
+            assert "Authlib/" in req.headers.get("user-agent", "")
+            if req.url == "https://provider.test/.well-known/openid-configuration":
+                return mock_send_value(
+                    {
+                        "authorization_endpoint": "https://provider.test/authorize",
+                        "jwks_uri": "https://provider.test/.well-known/keys",
+                    }
+                )
+            if req.url == "https://provider.test/.well-known/keys":
+                return mock_send_value({"keys": []})
+            return mock.DEFAULT
+
+        send.side_effect = check_request
+
+        with app.test_request_context():
+            client.fetch_jwk_set()
+
+        assert send.call_count == 2
+
+
 def test_oauth2_authorize_with_metadata():
     app = Flask(__name__)
     app.secret_key = "!"
