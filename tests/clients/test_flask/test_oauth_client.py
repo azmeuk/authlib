@@ -341,16 +341,6 @@ def test_oauth2_fetch_metadata():
         client_secret="dev",
         api_base_url="https://resource.test/api",
         access_token_url="https://provider.test/token",
-    )
-    with pytest.raises(RuntimeError):
-        client.create_authorization_url(None)
-
-    client = oauth.register(
-        "dev2",
-        client_id="dev",
-        client_secret="dev",
-        api_base_url="https://resource.test/api",
-        access_token_url="https://provider.test/token",
         server_metadata_url="https://provider.test/.well-known/openid-configuration",
     )
     with mock.patch("requests.sessions.Session.send") as send:

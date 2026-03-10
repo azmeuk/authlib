@@ -22,6 +22,7 @@ Version 1.7.0
 - Fix ``expires_at=0`` being incorrectly treated as ``None``. :issue:`530`
 - Allow ``ResourceProtector`` decorator to be used without parentheses. :issue:`604`
 - Implement RFC9700 PKCE downgrade countermeasure.
+- Set ``User-Agent`` header when fetching server metadata and JWKs. :issue:`704`
 
 Upgrade Guide: :ref:`joserfc_upgrade`.
 
