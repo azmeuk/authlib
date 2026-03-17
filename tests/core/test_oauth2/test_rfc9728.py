@@ -1,6 +1,11 @@
 import unittest
 
 import pytest
+from joserfc import jwt
+from joserfc.jwk import ECKey
+from joserfc.jwk import OctKey
+from joserfc.jwk import OKPKey
+from joserfc.jwk import RSAKey
 
 from authlib.oauth2.rfc9728 import ProtectedResourceMetadata
 from authlib.oauth2.rfc9728.well_known import get_well_known_url
@@ -374,6 +379,66 @@ class ProtectedResourceMetadataTest(unittest.TestCase):
 
         with pytest.raises(AttributeError):
             _ = metadata.non_existent_attribute
+
+    def test_sign_metadata(self):
+        """sign_metadata produces a JWT with all claims, iss defaulting to resource."""
+        key = OctKey.generate_key(256)
+        metadata = ProtectedResourceMetadata(
+            {
+                "resource": "https://resource.test/api",
+                "scopes_supported": ["read", "write"],
+            }
+        )
+        token = metadata.sign_metadata(key, "HS256")
+
+        assert isinstance(token, str)
+        assert metadata["signed_metadata"] == token
+
+        decoded = jwt.decode(token, key)
+        assert decoded.claims["iss"] == "https://resource.test/api"
+        assert decoded.claims["resource"] == "https://resource.test/api"
+        assert decoded.claims["scopes_supported"] == ["read", "write"]
+        assert "signed_metadata" not in decoded.claims
+
+    def test_sign_metadata_custom_issuer(self):
+        """A third party can sign on behalf of the resource (Section 2.2)."""
+        key = OctKey.generate_key(256)
+        metadata = ProtectedResourceMetadata({"resource": "https://resource.test/api"})
+        metadata.sign_metadata(key, "HS256", issuer="https://auth.test")
+
+        decoded = jwt.decode(metadata["signed_metadata"], key)
+        assert decoded.claims["iss"] == "https://auth.test"
+
+    def test_sign_metadata_auto_algorithm_oct(self):
+        """Algorithm is guessed as HS256 for OctKey."""
+        key = OctKey.generate_key(256)
+        metadata = ProtectedResourceMetadata({"resource": "https://resource.test/api"})
+        metadata.sign_metadata(key)
+        decoded = jwt.decode(metadata["signed_metadata"], key)
+        assert decoded.header["alg"] == "HS256"
+
+    def test_sign_metadata_auto_algorithm_rsa(self):
+        """Algorithm is guessed as RS256 for RSAKey."""
+        key = RSAKey.generate_key(2048)
+        metadata = ProtectedResourceMetadata({"resource": "https://resource.test/api"})
+        metadata.sign_metadata(key)
+        decoded = jwt.decode(metadata["signed_metadata"], key)
+        assert decoded.header["alg"] == "RS256"
+
+    def test_sign_metadata_auto_algorithm_ec(self):
+        """Algorithm is guessed as ES256 for ECKey P-256."""
+        key = ECKey.generate_key("P-256")
+        metadata = ProtectedResourceMetadata({"resource": "https://resource.test/api"})
+        metadata.sign_metadata(key)
+        decoded = jwt.decode(metadata["signed_metadata"], key)
+        assert decoded.header["alg"] == "ES256"
+
+    def test_sign_metadata_auto_algorithm_unsupported(self):
+        """OKP keys have no recommended algorithm, explicit algorithm required."""
+        key = OKPKey.generate_key("Ed25519")
+        metadata = ProtectedResourceMetadata({"resource": "https://resource.test/api"})
+        with pytest.raises(ValueError, match="Cannot determine algorithm"):
+            metadata.sign_metadata(key)
 
     def test_validate_all_metadata_complete(self):
         metadata = ProtectedResourceMetadata(

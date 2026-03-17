@@ -1,5 +1,9 @@
 """Support for OAuth 2.0 Protected Resource Metadata model validation"""
 
+from joserfc import jwt
+from joserfc.jws import JWSRegistry
+
+from authlib._joserfc_helpers import import_any_key
 from authlib.common.security import is_secure_transport
 from authlib.common.urls import is_valid_url
 from authlib.common.urls import urlparse
@@ -225,6 +229,34 @@ class ProtectedResourceMetadata(dict):
         value = self.get("dpop_bound_access_tokens_required")
         if value and not isinstance(value, bool):
             raise ValueError('"dpop_bound_access_tokens_required" MUST be a boolean')
+
+    def sign_metadata(self, key, algorithm=None, issuer=None):
+        """Sign the metadata claims and store the JWT in self["signed_metadata"].
+
+        Returns the signed JWT string.
+        """
+        key = import_any_key(key)
+
+        if algorithm is None:
+            alg = JWSRegistry.guess_algorithm(key, JWSRegistry.Strategy.RECOMMENDED)
+            if alg is None:
+                raise ValueError(
+                    "Cannot determine algorithm for this key type, "
+                    "please provide algorithm explicitly"
+                )
+            algorithm = alg.name
+
+        claims = {}
+        for k, v in self.items():
+            if k == "signed_metadata":
+                continue
+            claims[k] = v
+
+        claims["iss"] = issuer or self["resource"]
+
+        token = jwt.encode({"alg": algorithm}, claims, key)
+        self["signed_metadata"] = token
+        return token
 
     @property
     def tls_client_certificate_bound_access_tokens(self):

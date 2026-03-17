@@ -60,6 +60,38 @@ You can use the :class:`ProtectedResourceMetadata` to get the metadata and valid
         print(authorization_server)
 
 
+Sign the metadata (Section 2.2)
+-------------------------------
+
+A resource server can sign its metadata as a JWT, so that consumers can verify
+its authenticity independently of TLS::
+
+    from joserfc.jwk import RSAKey
+    from authlib.oauth2.rfc9728 import ProtectedResourceMetadata
+
+    metadata = ProtectedResourceMetadata({
+        'resource': 'https://api.example.com/',
+        'scopes_supported': ['read', 'write'],
+    })
+
+    key = RSAKey.generate_key(2048)
+    token = metadata.sign_metadata(key)
+
+    # The JWT is stored in metadata['signed_metadata']
+    # and also returned by the method
+    print(token)
+
+The algorithm is automatically selected based on the key type (e.g. RS256 for
+RSA, ES256 for EC P-256). You can override it explicitly::
+
+    token = metadata.sign_metadata(key, algorithm='RS512')
+
+By default, the ``iss`` claim is set to the ``resource`` value. You can
+override it when a third party (e.g. an authorization server) signs on
+behalf of the resource::
+
+    metadata.sign_metadata(key, issuer='https://auth.example.com')
+
 
 API Reference
 -------------
