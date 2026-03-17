@@ -31,3 +31,4 @@ works.
     rfc9207
     rfc9728
     oidc
+    rpinitiated

@@ -18,16 +18,9 @@ server. Here is the way to protect your users' resources in Django::
         user = request.oauth_token.user
         return JsonResponse(dict(sub=user.pk, username=user.username))
 
-If the resource is not protected by a scope, use ``None``::
+If the resource is not protected by a scope, omit the argument::
 
-    @require_oauth()
-    def user_profile(request):
-        user = request.oauth_token.user
-        return JsonResponse(dict(sub=user.pk, username=user.username))
-
-    # or with None
-
-    @require_oauth(None)
+    @require_oauth
     def user_profile(request):
         user = request.oauth_token.user
         return JsonResponse(dict(sub=user.pk, username=user.username))

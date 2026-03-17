@@ -50,10 +50,10 @@ class JWSHeader(dict):
 
     def __init__(self, protected, header):
         obj = {}
-        if protected:
-            obj.update(protected)
         if header:
             obj.update(header)
+        if protected:
+            obj.update(protected)
         super().__init__(obj)
         self.protected = protected
         self.header = header

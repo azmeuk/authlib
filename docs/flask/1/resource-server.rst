@@ -29,7 +29,7 @@ server. Here is the way to protect your users' resources::
     )
 
     @app.route('/user')
-    @require_oauth()
+    @require_oauth
     def user_profile():
         user = current_credential.user
         return jsonify(user)
@@ -97,10 +97,10 @@ and ``flask_restful.Resource``::
     from flask.views import MethodView
 
     class UserAPI(MethodView):
-        decorators = [require_oauth()]
+        decorators = [require_oauth]
 
 
     from flask_restful import Resource
 
     class UserAPI(Resource):
-        method_decorators = [require_oauth()]
+        method_decorators = [require_oauth]

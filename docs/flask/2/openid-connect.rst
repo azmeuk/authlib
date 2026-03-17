@@ -98,22 +98,25 @@ extended features. We can apply the :class:`OpenIDCode` extension to
 
 First, we need to implement the missing methods for ``OpenIDCode``::
 
+    from joserfc.jwk import KeySet
     from authlib.oidc.core import grants, UserInfo
 
     class OpenIDCode(grants.OpenIDCode):
+        def resolve_client_private_key(self, client):
+            with open(jwks_file_path) as f:
+                data = json.load(f)
+            return KeySet.import_key_set(data)
+
+        def get_client_claims(self, client):
+            return {
+                'iss': 'https://example.com',
+            }
+
         def exists_nonce(self, nonce, request):
             exists = AuthorizationCode.query.filter_by(
                 client_id=request.payload.client_id, nonce=nonce
             ).first()
             return bool(exists)
-
-        def get_jwt_config(self, grant):
-            return {
-                'key': read_private_key_file(key_path),
-                'alg': 'RS512',
-                'iss': 'https://example.com',
-                'exp': 3600
-            }
 
         def generate_user_info(self, user, scope):
             return UserInfo(
@@ -179,22 +182,25 @@ The Implicit Flow is mainly used by Clients implemented in a browser using
 a scripting language. You need to implement the missing methods of
 :class:`OpenIDImplicitGrant` before registering it::
 
+    from joserfc.jwk import KeySet
     from authlib.oidc.core import grants
 
     class OpenIDImplicitGrant(grants.OpenIDImplicitGrant):
+        def resolve_client_private_key(self, client):
+            with open(jwks_file_path) as f:
+                data = json.load(f)
+            return KeySet.import_key_set(data)
+
+        def get_client_claims(self, client):
+            return {
+                'iss': 'https://example.com',
+            }
+
         def exists_nonce(self, nonce, request):
             exists = AuthorizationCode.query.filter_by(
                 client_id=request.payload.client_id, nonce=nonce
             ).first()
             return bool(exists)
-
-        def get_jwt_config(self):
-            return {
-                'key': read_private_key_file(key_path),
-                'alg': 'RS512',
-                'iss': 'https://example.com',
-                'exp': 3600
-            }
 
         def generate_user_info(self, user, scope):
             return UserInfo(
@@ -218,10 +224,24 @@ OpenIDHybridGrant is a subclass of OpenIDImplicitGrant, so the missing methods
 are the same, except that OpenIDHybridGrant has one more missing method, that
 is ``save_authorization_code``. You can implement it like this::
 
+    from joserfc.jwk import KeySet
     from authlib.oidc.core import grants
     from authlib.common.security import generate_token
 
     class OpenIDHybridGrant(grants.OpenIDHybridGrant):
+        def resolve_client_private_key(self, client):
+            with open(jwks_file_path) as f:
+                data = json.load(f)
+            return KeySet.import_key_set(data)
+
+        def get_client_claims(self, client):
+            return {
+                'iss': 'https://example.com',
+            }
+
+        def get_client_algorithm(self, client):
+            return 'RS512'
+
         def save_authorization_code(self, code, request):
             nonce = request.payload.data.get('nonce')
             item = AuthorizationCode(
@@ -242,14 +262,6 @@ is ``save_authorization_code``. You can implement it like this::
             ).first()
             return bool(exists)
 
-        def get_jwt_config(self):
-            return {
-                'key': read_private_key_file(key_path),
-                'alg': 'RS512',
-                'iss': 'https://example.com',
-                'exp': 3600
-            }
-
         def generate_user_info(self, user, scope):
             return UserInfo(
                 sub=user.id,
@@ -261,7 +273,8 @@ is ``save_authorization_code``. You can implement it like this::
     server.register_grant(OpenIDHybridGrant)
 
 
-Since all OpenID Connect Flow require ``exists_nonce``, ``get_jwt_config``
-and ``generate_user_info`` methods, you can create shared functions for them.
+Since all OpenID Connect Flow require ``exists_nonce``, ``resolve_client_private_key``,
+``get_client_claims``, ``get_client_algorithm`` and ``generate_user_info`` methods,
+you can create shared functions for them.
 
 Find the `example of OpenID Connect server <https://github.com/authlib/example-oidc-server>`_.

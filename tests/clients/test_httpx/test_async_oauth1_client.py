@@ -8,7 +8,7 @@ from authlib.integrations.httpx_client import OAuthError
 
 from ..asgi_helper import AsyncMockDispatch
 
-oauth_url = "https://example.com/oauth"
+oauth_url = "https://provider.test/oauth"
 
 
 @pytest.mark.asyncio
@@ -114,7 +114,7 @@ async def test_get_via_header():
         token_secret="bar",
         transport=transport,
     ) as client:
-        response = await client.get("https://example.com/")
+        response = await client.get("https://resource.test/")
 
     assert response.content == b"hello"
     request = response.request
@@ -141,7 +141,7 @@ async def test_get_via_body():
         signature_type=SIGNATURE_TYPE_BODY,
         transport=transport,
     ) as client:
-        response = await client.post("https://example.com/")
+        response = await client.post("https://resource.test/")
 
     assert response.content == b"hello"
 
@@ -161,7 +161,7 @@ async def test_get_via_query():
         signature_type=SIGNATURE_TYPE_QUERY,
         transport=transport,
     ) as client:
-        response = await client.get("https://example.com/")
+        response = await client.get("https://resource.test/")
 
     assert response.content == b"hello"
     request = response.request

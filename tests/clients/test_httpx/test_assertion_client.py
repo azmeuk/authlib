@@ -19,11 +19,11 @@ default_token = {
 def test_refresh_token():
     def verifier(request):
         content = request.form
-        if str(request.url) == "https://i.b/token":
+        if str(request.url) == "https://provider.test/token":
             assert "assertion" in content
 
     with AssertionClient(
-        "https://i.b/token",
+        "https://provider.test/token",
         issuer="foo",
         subject="foo",
         audience="foo",
@@ -31,12 +31,12 @@ def test_refresh_token():
         key="secret",
         transport=WSGITransport(MockDispatch(default_token, assert_func=verifier)),
     ) as client:
-        client.get("https://i.b")
+        client.get("https://provider.test")
 
     # trigger more case
     now = int(time.time())
     with AssertionClient(
-        "https://i.b/token",
+        "https://provider.test/token",
         issuer="foo",
         subject=None,
         audience="foo",
@@ -48,13 +48,13 @@ def test_refresh_token():
         claims={"test_mode": "true"},
         transport=WSGITransport(MockDispatch(default_token, assert_func=verifier)),
     ) as client:
-        client.get("https://i.b")
-        client.get("https://i.b")
+        client.get("https://provider.test")
+        client.get("https://provider.test")
 
 
 def test_without_alg():
     with AssertionClient(
-        "https://i.b/token",
+        "https://provider.test/token",
         issuer="foo",
         subject="foo",
         audience="foo",
@@ -62,4 +62,4 @@ def test_without_alg():
         transport=WSGITransport(MockDispatch(default_token)),
     ) as client:
         with pytest.raises(ValueError):
-            client.get("https://i.b")
+            client.get("https://provider.test")

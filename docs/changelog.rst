@@ -6,12 +6,80 @@ Changelog
 
 Here you can see the full list of changes between each Authlib release.
 
+Version 1.7.0
+-------------
+
+**Unreleased**
+
+- Add support for `OpenID Connect RP-Initiated Logout 1.0
+  <https://openid.net/specs/openid-connect-rpinitiated-1_0.html>`_.
+  See :ref:`specs/rpinitiated` for details. :issue:`500`
+- Per RFC 6749 Section 3.3, the ``scope`` parameter is now optional at both
+  authorization and token endpoints. ``client.get_allowed_scope()`` is called
+  to determine the default scope when omitted. :issue:`845`
+- Stop support for Python 3.9, start support Python 3.14. :pr:`850`
+- Allow ``AuthorizationServerMetadata.validate()`` to compose with RFC extension classes.
+- Fix ``expires_at=0`` being incorrectly treated as ``None``. :issue:`530`
+- Allow ``ResourceProtector`` decorator to be used without parentheses. :issue:`604`
+- Implement RFC9700 PKCE downgrade countermeasure.
+- Set ``User-Agent`` header when fetching server metadata and JWKs. :issue:`704`
+- RFC7523 accepts the issuer URL as a valid audience. :issue:`730`
+
+Upgrade Guide: :ref:`joserfc_upgrade`.
+
+Version 1.6.6
+-------------
+
+**Released on Dec 12, 2025**
+
+- ``get_jwt_config`` takes a ``client`` parameter, :pr:`844`.
+- Fix incorrect signature when ``Content-Type`` is x-www-form-urlencoded for OAuth 1.0 Client, :pr:`778`.
+- Use ``expires_in`` in ``OAuth2Token`` when ``expires_at`` is unparsable, :pr:`842`.
+- Always track ``state`` in session for OAuth client integrations.
+
+Version 1.6.5
+-------------
+
+**Released on Oct 2, 2025**
+
+- RFC7591 ``generate_client_info`` and ``generate_client_secret`` take a ``request`` parameter.
+- Add size limitation when decode JWS/JWE to prevent DoS.
+- Add size limitation for ``DEF`` JWE zip algorithm.
+
+Version 1.6.4
+-------------
+
+**Released on Sep 17, 2025**
+
+- Fix ``InsecureTransportError`` error raising. :issue:`795`
+- Fix ``response_mode=form_post`` with Starlette client. :issue:`793`
+- Validate ``crit`` header value, reject unprotected header in ``crit`` header.
+
+Version 1.6.3
+-------------
+
+**Released on Aug 26, 2025**
+
+- OIDC ``id_token`` are signed according to ``id_token_signed_response_alg``
+  client metadata. :issue:`755`
+
+Version 1.6.2
+-------------
+
+**Released on Aug 23, 2025**
+
+- Temporarily restore ``OAuth2Request`` ``body`` parameter. :issue:`781` :pr:`791`
+- Allow ``127.0.0.1`` in insecure transport mode. :pr:`788`
+- Raise ``MissingCodeException`` when the ``code`` parameter is missing. :issue:`793` :pr:`794`
+- Fix ``id_token`` generation with `EdDSA` algs. :issue:`799` :pr:`800`
+
 Version 1.6.1
 -------------
 
 **Released on Jul 20, 2025**
 
 - Filter key set with additional "alg" and "use" parameters.
+- Restore and deprecate ``OAuth2Request`` ``body`` parameter. :issue:`781`
 
 Version 1.6.0
 -------------
@@ -20,11 +88,15 @@ Version 1.6.0
 
 - Fix issue when :rfc:`RFC9207 <9207>` is enabled and the authorization endpoint response is not a redirection. :pr:`733`
 - Fix missing ``state`` parameter in authorization error responses. :issue:`525`
-- Support for ``acr`` and ``amr`` claims in ``id_token``. :issue:`734`
 - Support for the ``none`` JWS algorithm.
 - Fix ``response_types`` strict order during dynamic client registration. :issue:`760`
 - Implement :rfc:`RFC9101 The OAuth 2.0 Authorization Framework: JWT-Secured Authorization Request (JAR) <9101>`. :issue:`723`
 - OIDC :class:`UserInfo endpoint <authlib.oidc.core.userinfo.UserInfoEndpoint>` support. :issue:`459`
+
+**Breaking changes**:
+
+- Support for ``acr`` and ``amr`` claims in ``id_token``. :issue:`734`
+  The ``OAuth2AuthorizationCodeMixin`` must have a migration to support the new fields.
 
 Version 1.5.2
 -------------

@@ -18,7 +18,12 @@ CACHES = {
     }
 }
 
-INSTALLED_APPS = []
+INSTALLED_APPS = [
+    "django.contrib.contenttypes",
+    "django.contrib.auth",
+    "tests.django.test_oauth1",
+    "tests.django.test_oauth2",
+]
 
 AUTHLIB_OAUTH_CLIENTS = {
     "dev_overwrite": {
@@ -29,3 +34,6 @@ AUTHLIB_OAUTH_CLIENTS = {
 }
 
 USE_TZ = True
+
+# Default OAuth1 configuration for tests
+AUTHLIB_OAUTH1_PROVIDER = {"signature_methods": ["PLAINTEXT", "HMAC-SHA1"]}

@@ -35,18 +35,10 @@ Here is the way to protect your users' resources::
         user = current_token.user
         return jsonify(user)
 
-If the resource is not protected by a scope, use ``None``::
+If the resource is not protected by a scope, omit the argument::
 
     @app.route('/user')
-    @require_oauth()
-    def user_profile():
-        user = current_token.user
-        return jsonify(user)
-
-    # or with None
-
-    @app.route('/user')
-    @require_oauth(None)
+    @require_oauth
     def user_profile():
         user = current_token.user
         return jsonify(user)
