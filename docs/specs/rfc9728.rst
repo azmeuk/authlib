@@ -15,7 +15,7 @@ Considering a resource server with the following URL: ``https://api.example.com/
     url = get_well_known_url('https://api.example.com/')
 
 This will return the URL:
-``/.well-known/oauth-authorization-server``
+``/.well-known/oauth-protected-resource``
 
 When using ``external=True``::
 
@@ -24,7 +24,7 @@ When using ``external=True``::
     url = get_well_known_url('https://api.example.com/', external=True)
 
 This will return the URL:
-``'https://api.example.com/.well-known/oauth-authorization-server``
+``https://api.example.com/.well-known/oauth-protected-resource``
 
 .. meta::
     :description: Implementation of RFC9728 OAuth 2.0 Protected Resource Metadata,
