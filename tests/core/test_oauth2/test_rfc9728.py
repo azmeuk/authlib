@@ -10,31 +10,32 @@ WELL_KNOWN_URL = "/.well-known/oauth-protected-resource"
 
 class WellKnownTest(unittest.TestCase):
     def test_no_suffix_issuer(self):
-        assert get_well_known_url("https://authlib.org") == WELL_KNOWN_URL
-        assert get_well_known_url("https://authlib.org/") == WELL_KNOWN_URL
+        assert get_well_known_url("https://resource.test") == WELL_KNOWN_URL
+        assert get_well_known_url("https://resource.test/") == WELL_KNOWN_URL
 
     def test_with_suffix_issuer(self):
         assert (
-            get_well_known_url("https://authlib.org/issuer1")
+            get_well_known_url("https://resource.test/issuer1")
             == WELL_KNOWN_URL + "/issuer1"
         )
         assert (
-            get_well_known_url("https://authlib.org/a/b/c") == WELL_KNOWN_URL + "/a/b/c"
+            get_well_known_url("https://resource.test/a/b/c")
+            == WELL_KNOWN_URL + "/a/b/c"
         )
 
     def test_with_external(self):
         assert (
-            get_well_known_url("https://authlib.org", external=True)
-            == "https://authlib.org" + WELL_KNOWN_URL
+            get_well_known_url("https://resource.test", external=True)
+            == "https://resource.test" + WELL_KNOWN_URL
         )
 
     def test_with_changed_suffix(self):
-        url = get_well_known_url("https://authlib.org", suffix="openid-configuration")
+        url = get_well_known_url("https://resource.test", suffix="openid-configuration")
         assert url == "/.well-known/openid-configuration"
         url = get_well_known_url(
-            "https://authlib.org", external=True, suffix="openid-configuration"
+            "https://resource.test", external=True, suffix="openid-configuration"
         )
-        assert url == "https://authlib.org/.well-known/openid-configuration"
+        assert url == "https://resource.test/.well-known/openid-configuration"
 
 
 class ProtectedResourceMetadataTest(unittest.TestCase):
@@ -45,22 +46,18 @@ class ProtectedResourceMetadataTest(unittest.TestCase):
             metadata.validate()
 
         #: https
-        metadata = ProtectedResourceMetadata(
-            {"resource": "http://authlib.org/test-resource"}
-        )
+        metadata = ProtectedResourceMetadata({"resource": "http://resource.test/api"})
         with pytest.raises(ValueError, match="https"):
             metadata.validate_resource()
 
         #: fragment
         metadata = ProtectedResourceMetadata(
-            {"resource": "https://authlib.org/test-resource#fragment"}
+            {"resource": "https://resource.test/api#fragment"}
         )
         with pytest.raises(ValueError, match="fragment"):
             metadata.validate_resource()
 
-        metadata = ProtectedResourceMetadata(
-            {"resource": "https://authlib.org/test-resource"}
-        )
+        metadata = ProtectedResourceMetadata({"resource": "https://resource.test/api"})
         metadata.validate_resource()
 
     def test_validate_authorization_servers(self):
@@ -70,14 +67,14 @@ class ProtectedResourceMetadataTest(unittest.TestCase):
 
         # not a JSON array
         metadata = ProtectedResourceMetadata(
-            {"authorization_servers": "https://authlib.org/"}
+            {"authorization_servers": "https://auth.test/"}
         )
         with pytest.raises(ValueError, match="MUST be JSON array"):
             metadata.validate_authorization_servers()
 
         # valid array
         metadata = ProtectedResourceMetadata(
-            {"authorization_servers": ["https://authlib.org/"]}
+            {"authorization_servers": ["https://auth.test/"]}
         )
         metadata.validate_authorization_servers()
 
@@ -87,13 +84,13 @@ class ProtectedResourceMetadataTest(unittest.TestCase):
         metadata.validate_jwks_uri()
         # not https
         metadata = ProtectedResourceMetadata(
-            {"jwks_uri": "http://authlib.org/jwks.json"}
+            {"jwks_uri": "http://resource.test/jwks.json"}
         )
         with pytest.raises(ValueError, match="https"):
             metadata.validate_jwks_uri()
 
         metadata = ProtectedResourceMetadata(
-            {"jwks_uri": "https://authlib.org/jwks.json"}
+            {"jwks_uri": "https://resource.test/jwks.json"}
         )
         metadata.validate_jwks_uri()
 
@@ -170,7 +167,7 @@ class ProtectedResourceMetadataTest(unittest.TestCase):
         with pytest.raises(ValueError, match="MUST be a string"):
             metadata.validate_resource_name()
         # valid
-        metadata = ProtectedResourceMetadata({"resource_name": "my_resource"})
+        metadata = ProtectedResourceMetadata({"resource_name": "My Resource API"})
         metadata.validate_resource_name()
 
         # check internationalized resource_name - not string
@@ -179,7 +176,7 @@ class ProtectedResourceMetadataTest(unittest.TestCase):
             metadata.validate_resource_name()
 
         # check internationalized resource_name - valid
-        metadata = ProtectedResourceMetadata({"resource_name#fr": "ma_ressource"})
+        metadata = ProtectedResourceMetadata({"resource_name#fr": "Mon API Resource"})
         metadata.validate_resource_name()
 
     def test_validate_resource_documentation(self):
@@ -194,13 +191,13 @@ class ProtectedResourceMetadataTest(unittest.TestCase):
 
         # not a valid URL
         metadata = ProtectedResourceMetadata(
-            {"resource_documentation": "http//authlib.org/test_resource"}
+            {"resource_documentation": "http//resource.test/docs"}
         )
         with pytest.raises(ValueError, match="MUST be a URL"):
             metadata.validate_resource_documentation()
         # valid URL
         metadata = ProtectedResourceMetadata(
-            {"resource_documentation": "https://authlib.org/"}
+            {"resource_documentation": "https://resource.test/docs"}
         )
         metadata.validate_resource_documentation()
 
@@ -211,7 +208,7 @@ class ProtectedResourceMetadataTest(unittest.TestCase):
 
         # check internationalized resource_documentation - valid
         metadata = ProtectedResourceMetadata(
-            {"resource_documentation#fr": "https://authlib.org/"}
+            {"resource_documentation#fr": "https://resource.test/docs/fr"}
         )
         metadata.validate_resource_documentation()
 
@@ -227,7 +224,7 @@ class ProtectedResourceMetadataTest(unittest.TestCase):
 
         # valid URL
         metadata = ProtectedResourceMetadata(
-            {"resource_policy_uri": "https://authlib.org/"}
+            {"resource_policy_uri": "https://resource.test/policy"}
         )
         metadata.validate_resource_policy_uri()
 
@@ -243,7 +240,7 @@ class ProtectedResourceMetadataTest(unittest.TestCase):
 
         # valid URL
         metadata = ProtectedResourceMetadata(
-            {"resource_tos_uri": "https://authlib.org/"}
+            {"resource_tos_uri": "https://resource.test/tos"}
         )
         metadata.validate_resource_tos_uri()
 
@@ -252,14 +249,14 @@ class ProtectedResourceMetadataTest(unittest.TestCase):
         metadata = ProtectedResourceMetadata()
         metadata.validate_tls_client_certificate_bound_access_tokens()
 
-        # not a URL
+        # not a boolean
         metadata = ProtectedResourceMetadata(
             {"tls_client_certificate_bound_access_tokens": "invalid"}
         )
         with pytest.raises(ValueError, match="MUST be a boolean"):
             metadata.validate_tls_client_certificate_bound_access_tokens()
 
-        # valid URL
+        # valid
         metadata = ProtectedResourceMetadata(
             {"tls_client_certificate_bound_access_tokens": True}
         )
@@ -327,7 +324,7 @@ class ProtectedResourceMetadataTest(unittest.TestCase):
 
         # nominal case
         metadata = ProtectedResourceMetadata(
-            {"resource_policy_uri#es": "https://authlib.org/"}
+            {"resource_policy_uri#es": "https://resource.test/policy/es"}
         )
         metadata.validate_resource_policy_uri()
 
@@ -339,7 +336,7 @@ class ProtectedResourceMetadataTest(unittest.TestCase):
 
         # nominal case
         metadata = ProtectedResourceMetadata(
-            {"resource_tos_uri#de": "https://authlib.org/"}
+            {"resource_tos_uri#de": "https://resource.test/tos/de"}
         )
         metadata.validate_resource_tos_uri()
 
@@ -362,12 +359,12 @@ class ProtectedResourceMetadataTest(unittest.TestCase):
     def test_getattr_registry_keys(self):
         metadata = ProtectedResourceMetadata(
             {
-                "resource": "https://example.com/api",
+                "resource": "https://resource.test/api",
                 "scopes_supported": ["read", "write"],
             }
         )
 
-        assert metadata.resource == "https://example.com/api"
+        assert metadata.resource == "https://resource.test/api"
         assert metadata.scopes_supported == ["read", "write"]
         assert metadata.authorization_servers is None
 
@@ -381,20 +378,20 @@ class ProtectedResourceMetadataTest(unittest.TestCase):
     def test_validate_all_metadata_complete(self):
         metadata = ProtectedResourceMetadata(
             {
-                "resource": "https://api.example.com/v1",
-                "authorization_servers": ["https://auth.example.com"],
-                "jwks_uri": "https://api.example.com/.well-known/jwks.json",
+                "resource": "https://resource.test/api/v1",
+                "authorization_servers": ["https://auth.test"],
+                "jwks_uri": "https://resource.test/.well-known/jwks.json",
                 "scopes_supported": ["read", "write", "admin"],
                 "bearer_methods_supported": ["header", "body"],
                 "resource_signing_alg_values_supported": ["RS256", "ES256"],
                 "resource_name": "Example API",
                 "resource_name#fr": "API Example",
-                "resource_documentation": "https://docs.example.com/api",
-                "resource_documentation#fr": "https://docs.example.com/api/fr",
-                "resource_policy_uri": "https://example.com/policy",
-                "resource_policy_uri#fr": "https://example.com/policy/fr",
-                "resource_tos_uri": "https://example.com/tos",
-                "resource_tos_uri#fr": "https://example.com/tos/fr",
+                "resource_documentation": "https://resource.test/docs",
+                "resource_documentation#fr": "https://resource.test/docs/fr",
+                "resource_policy_uri": "https://resource.test/policy",
+                "resource_policy_uri#fr": "https://resource.test/policy/fr",
+                "resource_tos_uri": "https://resource.test/tos",
+                "resource_tos_uri#fr": "https://resource.test/tos/fr",
                 "tls_client_certificate_bound_access_tokens": True,
                 "authorization_details_types_supported": ["payment", "account"],
                 "dpop_signing_alg_values_supported": ["RS256", "ES256"],
