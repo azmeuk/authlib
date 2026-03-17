@@ -93,6 +93,18 @@ behalf of the resource::
     metadata.sign_metadata(key, issuer='https://auth.example.com')
 
 
+Authorization Server Metadata extension (Section 4)
+----------------------------------------------------
+
+RFC9728 defines an optional ``protected_resources`` parameter for authorization
+server metadata (:rfc:`8414`). You can validate it using the extension class::
+
+    from authlib.oauth2 import rfc8414, rfc9728
+
+    metadata = rfc8414.AuthorizationServerMetadata(data)
+    metadata.validate(metadata_classes=[rfc9728.AuthorizationServerMetadata])
+
+
 API Reference
 -------------
 

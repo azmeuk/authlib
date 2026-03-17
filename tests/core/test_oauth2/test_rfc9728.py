@@ -7,6 +7,8 @@ from joserfc.jwk import OctKey
 from joserfc.jwk import OKPKey
 from joserfc.jwk import RSAKey
 
+from authlib.oauth2 import rfc8414
+from authlib.oauth2 import rfc9728
 from authlib.oauth2.rfc9728 import ProtectedResourceMetadata
 from authlib.oauth2.rfc9728.well_known import get_well_known_url
 
@@ -464,3 +466,41 @@ class ProtectedResourceMetadataTest(unittest.TestCase):
             }
         )
         metadata.validate()
+
+
+def test_validate_protected_resources():
+    """protected_resources is an optional JSON array (Section 4)."""
+    metadata = rfc9728.AuthorizationServerMetadata()
+    metadata.validate_protected_resources()
+
+    metadata = rfc9728.AuthorizationServerMetadata(
+        {"protected_resources": ["https://resource.test/api"]}
+    )
+    metadata.validate_protected_resources()
+
+    metadata = rfc9728.AuthorizationServerMetadata(
+        {"protected_resources": "https://resource.test/api"}
+    )
+    with pytest.raises(ValueError, match="MUST be JSON array"):
+        metadata.validate_protected_resources()
+
+
+def test_protected_resources_metadata_classes_composition():
+    """protected_resources can be validated via metadata_classes on rfc8414."""
+    base_metadata = {
+        "issuer": "https://auth.test",
+        "authorization_endpoint": "https://auth.test/authorize",
+        "token_endpoint": "https://auth.test/token",
+        "response_types_supported": ["code"],
+    }
+
+    metadata = rfc8414.AuthorizationServerMetadata(
+        {**base_metadata, "protected_resources": ["https://resource.test/api"]}
+    )
+    metadata.validate(metadata_classes=[rfc9728.AuthorizationServerMetadata])
+
+    metadata = rfc8414.AuthorizationServerMetadata(
+        {**base_metadata, "protected_resources": "https://resource.test/api"}
+    )
+    with pytest.raises(ValueError, match="MUST be JSON array"):
+        metadata.validate(metadata_classes=[rfc9728.AuthorizationServerMetadata])
