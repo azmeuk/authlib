@@ -88,6 +88,16 @@ class ResourceProtector:
         self._token_validators = {}
         self._default_realm = None
         self._default_auth_type = None
+        self._extensions = []
+
+    def register_extension(self, extension):
+        """Register an extension that can configure this protector.
+
+        An extension is a callable that receives the protector instance::
+
+            resource_protector.register_extension(my_extension)
+        """
+        self._extensions.append(extension(self))
 
     def register_token_validator(self, validator: TokenValidator):
         """Register a token validator for a given Authorization type.
