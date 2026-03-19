@@ -24,6 +24,8 @@ Version 1.7.0
 - Implement RFC9700 PKCE downgrade countermeasure.
 - Set ``User-Agent`` header when fetching server metadata and JWKs. :issue:`704`
 - RFC7523 accepts the issuer URL as a valid audience. :issue:`730`
+- Fix ``InvalidTokenError`` extra attributes being wrapped instead of passed as
+  individual key=value pairs in the ``WWW-Authenticate`` header. :pr:`872`
 
 Upgrade Guide: :ref:`joserfc_upgrade`.
 
