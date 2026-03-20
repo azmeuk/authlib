@@ -29,10 +29,34 @@ Version 1.7.0
 
 Upgrade Guide: :ref:`joserfc_upgrade`.
 
+Version 1.6.9
+-------------
+
+**Released on Mar 2, 2026**
+
+- Not using header's ``jwk`` automatically.
+- Add ``ES256K`` into default jwt algorithms.
+- Remove deprecated algorithm from default registry.
+- Generate random ``cek`` when ``cek`` length doesn't match.
+
+Version 1.6.8
+-------------
+
+**Released on Feb 17, 2026**
+
+- Add ``EdDSA`` to default ``jwt`` instance.
+
+Version 1.6.7
+-------------
+
+**Released on Feb 6, 2026**
+
+- Set supported algorithms for the default ``jwt`` instance.
+
 Version 1.6.6
 -------------
 
-**Released on Dec 12, 2025**
+**Released on Jan 9, 2026**
 
 - ``get_jwt_config`` takes a ``client`` parameter, :pr:`844`.
 - Fix incorrect signature when ``Content-Type`` is x-www-form-urlencoded for OAuth 1.0 Client, :pr:`778`.
