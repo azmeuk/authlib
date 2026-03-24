@@ -7,13 +7,35 @@ from authlib._joserfc_helpers import import_any_key
 from authlib.common.security import is_secure_transport
 from authlib.common.urls import is_valid_url
 from authlib.common.urls import urlparse
+from authlib.oauth2.rfc6749.errors import OAuth2Error
+
+from .well_known import get_well_known_url
 
 
 class ProtectedResourceMetadata(dict):
-    """Define Protected Resource Metadata via `Section 2`_ in RFC9728_.
+    """Define Protected Resource Metadata per :rfc:`9728#section-2`.
 
-    .. _RFC9728: https://tools.ietf.org/html/rfc9728
-    .. _`Section 2`: https://tools.ietf.org/html/rfc9728#section-2
+    A ``dict`` subclass with validation for all metadata fields defined by the
+    specification. Fields are accessed as dict keys or as attributes::
+
+        from authlib.oauth2.rfc9728 import ProtectedResourceMetadata
+
+        metadata = ProtectedResourceMetadata(
+            {
+                "resource": "https://api.example.com/",
+                "authorization_servers": ["https://auth.example.com"],
+                "jwks_uri": "https://api.example.com/.well-known/jwks.json",
+                "scopes_supported": ["read", "write", "admin"],
+                "bearer_methods_supported": ["header"],
+                "resource_signing_alg_values_supported": ["RS256", "ES256"],
+                "resource_name": "Example API",
+                "resource_name#fr": "API Example",
+                "resource_documentation": "https://api.example.com/docs",
+                "resource_policy_uri": "https://example.com/policy",
+                "resource_tos_uri": "https://example.com/tos",
+            }
+        )
+        metadata.validate()
     """
 
     REGISTRY_KEYS = [
@@ -231,9 +253,20 @@ class ProtectedResourceMetadata(dict):
             raise ValueError('"dpop_bound_access_tokens_required" MUST be a boolean')
 
     def sign_metadata(self, key, algorithm=None, issuer=None):
-        """Sign the metadata claims and store the JWT in self["signed_metadata"].
+        """Sign the metadata as a JWT and store it in ``self["signed_metadata"]``.
 
-        Returns the signed JWT string.
+        Returns the signed JWT string. The algorithm is automatically selected
+        based on the key type (e.g. RS256 for RSA, ES256 for EC P-256). Pass
+        ``algorithm`` explicitly to override. The ``iss`` claim defaults to
+        ``self["resource"]``; use ``issuer`` when a third party signs on behalf
+        of the resource::
+
+            from joserfc.jwk import RSAKey
+
+            key = RSAKey.generate_key(2048)
+            metadata.sign_metadata(key)
+            metadata.sign_metadata(key, algorithm="RS512")
+            metadata.sign_metadata(key, issuer="https://auth.example.com")
         """
         key = import_any_key(key)
 
@@ -282,6 +315,38 @@ class ProtectedResourceMetadata(dict):
             if key in self.REGISTRY_KEYS:
                 return self.get(key)
             raise error
+
+
+class ResourceMetadataExtension:
+    """ResourceProtector extension that injects ``resource_metadata`` into
+    ``WWW-Authenticate`` error responses per :rfc:`9728#section-5`.
+
+    Usage::
+
+        from authlib.oauth2.rfc9728 import (
+            ProtectedResourceMetadata,
+            ResourceMetadataExtension,
+        )
+
+        metadata = ProtectedResourceMetadata({"resource": "https://api.example.com/"})
+        require_oauth.register_extension(ResourceMetadataExtension(metadata))
+    """
+
+    def __init__(self, metadata):
+        self._metadata_url = get_well_known_url(metadata["resource"], external=True)
+
+    def __call__(self, protector):
+        metadata_url = self._metadata_url
+
+        def inject(_instance, original, *args, **kwargs):
+            try:
+                return original(*args, **kwargs)
+            except OAuth2Error as error:
+                if hasattr(error, "extra_attributes"):
+                    error.extra_attributes["resource_metadata"] = metadata_url
+                raise
+
+        protector.register_hook("replace_validate_request", inject)
 
 
 def validate_array_value(metadata, key):

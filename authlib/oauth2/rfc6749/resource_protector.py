@@ -8,6 +8,8 @@ Implementation of Accessing Protected Resources per `Section 7`_.
 
 from .errors import MissingAuthorizationError
 from .errors import UnsupportedTokenTypeError
+from .hooks import Hookable
+from .hooks import hooked
 from .util import scope_to_list
 
 
@@ -83,8 +85,9 @@ class TokenValidator:
         raise NotImplementedError()
 
 
-class ResourceProtector:
+class ResourceProtector(Hookable):
     def __init__(self):
+        super().__init__()
         self._token_validators = {}
         self._default_realm = None
         self._default_auth_type = None
@@ -149,6 +152,7 @@ class ResourceProtector:
         validator = self.get_token_validator(token_type)
         return validator, token_string
 
+    @hooked
     def validate_request(self, scopes, request, **kwargs):
         """Validate the request and return a token."""
         validator, token_string = self.parse_request_authorization(request)
