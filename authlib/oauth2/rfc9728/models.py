@@ -53,6 +53,7 @@ class ProtectedResourceMetadata(dict):
         "authorization_details_types_supported",
         "dpop_signing_alg_values_supported",
         "dpop_bound_access_tokens_required",
+        "signed_metadata",
     ]
 
     def validate_resource(self):
@@ -251,6 +252,12 @@ class ProtectedResourceMetadata(dict):
         value = self.get("dpop_bound_access_tokens_required")
         if value and not isinstance(value, bool):
             raise ValueError('"dpop_bound_access_tokens_required" MUST be a boolean')
+
+    def validate_signed_metadata(self):
+        """OPTIONAL. JWT containing metadata values as claims per :rfc:`9728#section-2.2`."""
+        value = self.get("signed_metadata")
+        if value is not None and not isinstance(value, str):
+            raise ValueError('"signed_metadata" MUST be a string')
 
     def sign_metadata(self, key, algorithm=None, issuer=None):
         """Sign the metadata as a JWT and store it in ``self["signed_metadata"]``.

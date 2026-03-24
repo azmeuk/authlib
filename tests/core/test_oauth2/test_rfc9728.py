@@ -630,3 +630,27 @@ def test_sign_metadata_skips_existing_signed_metadata():
     metadata.sign_metadata(key, "HS256")
     decoded = jwt.decode(metadata["signed_metadata"], key)
     assert "signed_metadata" not in decoded.claims
+
+
+def test_validate_signed_metadata():
+    # can be absent
+    metadata = ProtectedResourceMetadata()
+    metadata.validate_signed_metadata()
+
+    # must be a string
+    metadata = ProtectedResourceMetadata({"signed_metadata": 123})
+    with pytest.raises(ValueError, match="MUST be a string"):
+        metadata.validate_signed_metadata()
+
+    # valid
+    metadata = ProtectedResourceMetadata({"signed_metadata": "a.b.c"})
+    metadata.validate_signed_metadata()
+
+
+def test_signed_metadata_attribute_access():
+    """signed_metadata is accessible as an attribute via REGISTRY_KEYS."""
+    metadata = ProtectedResourceMetadata({"signed_metadata": "a.b.c"})
+    assert metadata.signed_metadata == "a.b.c"
+
+    metadata = ProtectedResourceMetadata()
+    assert metadata.signed_metadata is None
