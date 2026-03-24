@@ -242,6 +242,11 @@ class ProtectedResourceMetadata(dict):
 
         """
         validate_array_value(self, "dpop_signing_alg_values_supported")
+        value = self.get("dpop_signing_alg_values_supported")
+        if value and "none" in value:
+            raise ValueError(
+                'the value "none" MUST NOT be used in "dpop_signing_alg_values_supported"'
+            )
 
     def validate_dpop_bound_access_tokens_required(self):
         """OPTIONAL. Boolean value specifying whether the protected resource

@@ -319,6 +319,13 @@ class ProtectedResourceMetadataTest(unittest.TestCase):
         with pytest.raises(ValueError, match="JSON array"):
             metadata.validate_dpop_signing_alg_values_supported()
 
+        # "none" MUST NOT be used
+        metadata = ProtectedResourceMetadata(
+            {"dpop_signing_alg_values_supported": ["none"]}
+        )
+        with pytest.raises(ValueError, match='"none" MUST NOT be used'):
+            metadata.validate_dpop_signing_alg_values_supported()
+
         # valid
         metadata = ProtectedResourceMetadata(
             {"dpop_signing_alg_values_supported": ["RS256", "ES256"]}
