@@ -195,11 +195,10 @@ class AccessDeniedError(OAuth2Error):
 class ForbiddenError(OAuth2Error):
     status_code = 401
 
-    def __init__(self, auth_type=None, realm=None, extra_attributes=None):
+    def __init__(self, auth_type=None, realm=None):
         super().__init__()
         self.auth_type = auth_type
         self.realm = realm
-        self.extra_attributes = extra_attributes or {}
 
     def get_headers(self):
         headers = super().get_headers()
@@ -209,10 +208,6 @@ class ForbiddenError(OAuth2Error):
         extras = []
         if self.realm:
             extras.append(f'realm="{self.realm}"')
-        if self.extra_attributes:
-            extras.extend(
-                [f'{k}="{self.extra_attributes[k]}"' for k in self.extra_attributes]
-            )
         extras.append(f'error="{self.error}"')
         error_description = self.description
         extras.append(f'error_description="{error_description}"')

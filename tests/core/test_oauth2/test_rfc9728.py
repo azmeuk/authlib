@@ -7,13 +7,15 @@ from joserfc.jwk import OctKey
 from joserfc.jwk import OKPKey
 from joserfc.jwk import RSAKey
 
-from authlib.oauth2 import OAuth2Error
 from authlib.oauth2 import rfc8414
 from authlib.oauth2 import rfc9728
 from authlib.oauth2.rfc6749 import ResourceProtector
 from authlib.oauth2.rfc6749.errors import InvalidRequestError
 from authlib.oauth2.rfc6749.errors import MissingAuthorizationError
+from authlib.oauth2.rfc6749.hooks import Hookable
+from authlib.oauth2.rfc6749.hooks import hooked
 from authlib.oauth2.rfc6750 import BearerTokenValidator
+from authlib.oauth2.rfc6750.errors import InsufficientScopeError
 from authlib.oauth2.rfc6750.errors import InvalidTokenError
 from authlib.oauth2.rfc9728 import ProtectedResourceMetadata
 from authlib.oauth2.rfc9728 import ResourceMetadataExtension
@@ -556,55 +558,6 @@ def test_invalid_token_error_extra_attributes():
     assert f'resource_metadata="{RESOURCE_METADATA_URL}"' in headers["WWW-Authenticate"]
 
 
-def test_missing_authorization_error_extra_attributes():
-    """ForbiddenError subclasses include extra_attributes in WWW-Authenticate (Section 5.1)."""
-    error = MissingAuthorizationError(
-        auth_type="Bearer",
-        extra_attributes={"resource_metadata": RESOURCE_METADATA_URL},
-    )
-    headers = dict(error.get_headers())
-    assert f'resource_metadata="{RESOURCE_METADATA_URL}"' in headers["WWW-Authenticate"]
-
-
-def test_forbidden_error_extra_attributes_backward_compat():
-    """ForbiddenError without extra_attributes still works."""
-    error = MissingAuthorizationError(auth_type="Bearer", realm="api")
-    headers = dict(error.get_headers())
-    assert "resource_metadata" not in headers["WWW-Authenticate"]
-    assert 'realm="api"' in headers["WWW-Authenticate"]
-
-
-def test_resource_protector_replace_validate_request():
-    """Extensions can wrap validate_request via replace hook."""
-
-    class FakeRequest:
-        headers = {}
-
-    protector = ResourceProtector()
-
-    def add_resource_metadata(protector, original, *args, **kwargs):
-        try:
-            return original(*args, **kwargs)
-        except OAuth2Error as error:
-            if hasattr(error, "extra_attributes"):
-                error.extra_attributes["resource_metadata"] = RESOURCE_METADATA_URL
-            raise
-
-    protector.register_hook("replace_validate_request", add_resource_metadata)
-
-    class FakeValidator(BearerTokenValidator):
-        def authenticate_token(self, token_string):
-            return None
-
-    protector.register_token_validator(FakeValidator())
-
-    with pytest.raises(MissingAuthorizationError) as exc_info:
-        protector.validate_request(scopes=None, request=FakeRequest())
-
-    headers = dict(exc_info.value.get_headers())
-    assert f'resource_metadata="{RESOURCE_METADATA_URL}"' in headers["WWW-Authenticate"]
-
-
 def test_resource_metadata_extension():
     """ResourceMetadataExtension injects resource_metadata into WWW-Authenticate."""
 
@@ -628,8 +581,8 @@ def test_resource_metadata_extension():
     assert f'resource_metadata="{RESOURCE_METADATA_URL}"' in headers["WWW-Authenticate"]
 
 
-def test_resource_metadata_extension_error_without_extra_attributes():
-    """ResourceMetadataExtension re-raises errors that have no extra_attributes."""
+def test_resource_metadata_extension_skips_non_auth_errors():
+    """ResourceMetadataExtension does not inject WWW-Authenticate on 400 errors."""
 
     class FakeRequest:
         headers = {"Authorization": "Bearer token"}
@@ -647,8 +600,39 @@ def test_resource_metadata_extension_error_without_extra_attributes():
 
     protector.register_token_validator(FakeValidator())
 
-    with pytest.raises(InvalidRequestError):
+    with pytest.raises(InvalidRequestError) as exc_info:
         protector.validate_request(scopes=None, request=FakeRequest())
+
+    headers = dict(exc_info.value.get_headers())
+    assert "WWW-Authenticate" not in headers
+
+
+def test_resource_metadata_extension_insufficient_scope():
+    """ResourceMetadataExtension injects a WWW-Authenticate on 403 even when absent."""
+
+    class FakeRequest:
+        headers = {"Authorization": "Bearer token"}
+
+    metadata = ProtectedResourceMetadata({"resource": "https://resource.test"})
+    protector = ResourceProtector()
+    protector.register_extension(ResourceMetadataExtension(metadata))
+
+    class FakeValidator(BearerTokenValidator):
+        def authenticate_token(self, token_string):
+            return None
+
+        def validate_token(self, token, scopes, request, **kwargs):
+            raise InsufficientScopeError()
+
+    protector.register_token_validator(FakeValidator())
+
+    with pytest.raises(InsufficientScopeError) as exc_info:
+        protector.validate_request(scopes=["read"], request=FakeRequest())
+
+    headers = dict(exc_info.value.get_headers())
+    # InsufficientScopeError has no WWW-Authenticate by default; extension injects it
+    assert f'resource_metadata="{RESOURCE_METADATA_URL}"' in headers["WWW-Authenticate"]
+    assert headers["WWW-Authenticate"].startswith("bearer ")
 
 
 def test_sign_metadata_skips_existing_signed_metadata():
@@ -685,3 +669,46 @@ def test_signed_metadata_attribute_access():
 
     metadata = ProtectedResourceMetadata()
     assert metadata.signed_metadata is None
+
+
+# -- hooks coverage --
+
+
+def test_hooked_replace_and_success_path():
+    """replace hook chains correctly; after hook and return value covered on success."""
+
+    class MyService(Hookable):
+        @hooked
+        def compute(self, x):
+            return x * 2
+
+    svc = MyService()
+    results = []
+    svc.register_hook("after_compute", lambda instance, r: results.append(r))
+
+    # success path without replace
+    assert svc.compute(3) == 6
+    assert results == [6]
+
+    # replace hook wraps the original
+    svc.register_hook(
+        "replace_compute",
+        lambda instance, original, x: original(x) + 10,
+    )
+    assert svc.compute(3) == 16
+
+
+def test_hooked_with_explicit_parameters():
+    """hooked called with parentheses covers the return decorator branch."""
+
+    class MyService(Hookable):
+        @hooked(before="my_before")
+        def work(self):
+            return 42
+
+    svc = MyService()
+    calls = []
+    svc.register_hook("my_before", lambda instance: calls.append("before"))
+
+    assert svc.work() == 42
+    assert calls == ["before"]

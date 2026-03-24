@@ -7,7 +7,6 @@ from authlib._joserfc_helpers import import_any_key
 from authlib.common.security import is_secure_transport
 from authlib.common.urls import is_valid_url
 from authlib.common.urls import urlparse
-from authlib.oauth2.rfc6749.errors import OAuth2Error
 
 from .well_known import get_well_known_url
 
@@ -347,18 +346,48 @@ class ResourceMetadataExtension:
     def __init__(self, metadata):
         self._metadata_url = get_well_known_url(metadata["resource"], external=True)
 
-    def __call__(self, protector):
-        metadata_url = self._metadata_url
+    def _patch_error(self, exc, instance):
+        """Patch ``exc.get_headers`` to inject ``resource_metadata`` into WWW-Authenticate."""
+        url = self._metadata_url
+        original_get_headers = exc.get_headers
 
-        def inject(_instance, original, *args, **kwargs):
+        def patched_get_headers():
+            headers = original_get_headers()
+            www_found = False
+            result = []
+            for name, value in headers:
+                if name.lower() == "www-authenticate":
+                    www_found = True
+                    scheme, _, rest = value.partition(" ")
+                    value = (
+                        f'{scheme} resource_metadata="{url}", {rest}'
+                        if rest
+                        else f'{scheme} resource_metadata="{url}"'
+                    )
+                result.append((name, value))
+
+            if not www_found:
+                auth_type = getattr(instance, "_default_auth_type", None) or "Bearer"
+                result.append(
+                    ("WWW-Authenticate", f'{auth_type} resource_metadata="{url}"')
+                )
+
+            return result
+
+        exc.get_headers = patched_get_headers
+
+    def __call__(self, protector):
+        def inject_www_authenticate_header(instance, original, *args, **kwargs):
             try:
                 return original(*args, **kwargs)
-            except OAuth2Error as error:
-                if hasattr(error, "extra_attributes"):
-                    error.extra_attributes["resource_metadata"] = metadata_url
+            except Exception as exc:
+                if getattr(exc, "status_code", 0) in (401, 403):
+                    self._patch_error(exc, instance)
                 raise
 
-        protector.register_hook("replace_validate_request", inject)
+        protector.register_hook(
+            "replace_validate_request", inject_www_authenticate_header
+        )
 
 
 def validate_array_value(metadata, key):

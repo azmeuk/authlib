@@ -22,9 +22,7 @@ def hooked(func=None, before=None, after=None, replace=None):
     where ``original`` is a callable that invokes the original method::
 
         def my_wrapper(instance, original, *args, **kwargs):
-            # do something before
             result = original(*args, **kwargs)
-            # do something after
             return result
 
 
@@ -51,13 +49,15 @@ def hooked(func=None, before=None, after=None, replace=None):
 
                     return call
 
-                call = initial_call
+                effective_call = initial_call
                 for hook in replacements:
-                    call = chain(hook, call)
-                result = call(*args, **kwargs)
+                    effective_call = chain(hook, effective_call)
             else:
-                result = func(self, *args, **kwargs)
 
+                def effective_call(*a, **kw):
+                    return func(self, *a, **kw)
+
+            result = effective_call(*args, **kwargs)
             self.execute_hook(after_name, result)
             return result
 
