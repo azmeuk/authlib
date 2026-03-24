@@ -29,4 +29,6 @@ def get_well_known_url(
         url_path = f"/.well-known/{suffix}"
     if not external:
         return url_path
-    return parsed.scheme + "://" + parsed.netloc + url_path
+    return urlparse.urlunparse(
+        (parsed.scheme, parsed.netloc, url_path, "", parsed.query, "")
+    )
