@@ -179,7 +179,7 @@ class ProtectedResourceMetadata(dict):
             if key.startswith("resource_documentation#"):
                 value = self.get(key)
                 if value and not is_valid_url(value):
-                    raise ValueError('"resource_documentation" MUST be a URL')
+                    raise ValueError(f'"{key}" MUST be a URL')
 
     def validate_resource_policy_uri(self):
         """OPTIONAL. URL of a page containing human-readable information about
@@ -197,7 +197,7 @@ class ProtectedResourceMetadata(dict):
             if key.startswith("resource_policy_uri#"):
                 value = self.get(key)
                 if value and not is_valid_url(value):
-                    raise ValueError('"resource_policy_uri" MUST be a URL')
+                    raise ValueError(f'"{key}" MUST be a URL')
 
     def validate_resource_tos_uri(self):
         """OPTIONAL. URL of a page containing human-readable information about
@@ -213,7 +213,7 @@ class ProtectedResourceMetadata(dict):
             if key.startswith("resource_tos_uri#"):
                 value = self.get(key)
                 if value and not is_valid_url(value):
-                    raise ValueError('"resource_tos_uri" MUST be a URL')
+                    raise ValueError(f'"{key}" MUST be a URL')
 
     def validate_tls_client_certificate_bound_access_tokens(self):
         """OPTIONAL. Boolean value indicating protected resource support for
