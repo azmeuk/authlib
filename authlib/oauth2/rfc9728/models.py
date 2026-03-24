@@ -222,7 +222,7 @@ class ProtectedResourceMetadata(dict):
         omitted, the default value is false.
         """
         value = self.get("tls_client_certificate_bound_access_tokens")
-        if value and not isinstance(value, bool):
+        if value is not None and not isinstance(value, bool):
             raise ValueError(
                 '"tls_client_certificate_bound_access_tokens" MUST be a boolean'
             )
@@ -250,7 +250,7 @@ class ProtectedResourceMetadata(dict):
 
         """
         value = self.get("dpop_bound_access_tokens_required")
-        if value and not isinstance(value, bool):
+        if value is not None and not isinstance(value, bool):
             raise ValueError('"dpop_bound_access_tokens_required" MUST be a boolean')
 
     def validate_signed_metadata(self):

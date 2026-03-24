@@ -270,11 +270,24 @@ class ProtectedResourceMetadataTest(unittest.TestCase):
         with pytest.raises(ValueError, match="MUST be a boolean"):
             metadata.validate_tls_client_certificate_bound_access_tokens()
 
-        # valid
+        # valid: True
         metadata = ProtectedResourceMetadata(
             {"tls_client_certificate_bound_access_tokens": True}
         )
         metadata.validate_tls_client_certificate_bound_access_tokens()
+
+        # valid: False (falsy but must still be accepted and not raise)
+        metadata = ProtectedResourceMetadata(
+            {"tls_client_certificate_bound_access_tokens": False}
+        )
+        metadata.validate_tls_client_certificate_bound_access_tokens()
+
+        # invalid: integer 0 is not a bool
+        metadata = ProtectedResourceMetadata(
+            {"tls_client_certificate_bound_access_tokens": 0}
+        )
+        with pytest.raises(ValueError, match="MUST be a boolean"):
+            metadata.validate_tls_client_certificate_bound_access_tokens()
 
     def test_validate_authorization_details_types_supported(self):
         # can missing
@@ -324,11 +337,22 @@ class ProtectedResourceMetadataTest(unittest.TestCase):
         with pytest.raises(ValueError, match="boolean"):
             metadata.validate_dpop_bound_access_tokens_required()
 
-        # valid
+        # valid: True
         metadata = ProtectedResourceMetadata(
             {"dpop_bound_access_tokens_required": True}
         )
         metadata.validate_dpop_bound_access_tokens_required()
+
+        # valid: False (falsy but must still be accepted and not raise)
+        metadata = ProtectedResourceMetadata(
+            {"dpop_bound_access_tokens_required": False}
+        )
+        metadata.validate_dpop_bound_access_tokens_required()
+
+        # invalid: integer 0 is not a bool
+        metadata = ProtectedResourceMetadata({"dpop_bound_access_tokens_required": 0})
+        with pytest.raises(ValueError, match="boolean"):
+            metadata.validate_dpop_bound_access_tokens_required()
 
     def test_validate_resource_policy_uri_internationalized(self):
         # error case
