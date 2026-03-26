@@ -14,6 +14,7 @@ It includes:
 
 .. versionchanged:: 1.7
     We are deprecating ``authlib.jose`` module in favor of joserfc_.
+    It will be removed in Authlib 1.8.
 
 .. _joserfc: https://jose.authlib.org/en/
 
