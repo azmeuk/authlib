@@ -1,7 +1,7 @@
 .. _jose:
 
-JOSE Guide
-==========
+JOSE
+====
 
 This part of the documentation contains information on the JOSE implementation.
 It includes:
@@ -44,3 +44,4 @@ Follow the documentation below to find out more in detail.
     jwe
     jwk
     jwt
+    specs/index

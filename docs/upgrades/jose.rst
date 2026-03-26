@@ -1,7 +1,7 @@
 .. _joserfc_upgrade:
 
-1.7: Upgrade to joserfc
-=======================
+joserfc migration
+=================
 
 joserfc_ is derived from Authlib and provides a cleaner design along with
 first-class type hints. We strongly recommend using ``joserfc`` instead of
