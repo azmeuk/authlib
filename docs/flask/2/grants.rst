@@ -193,10 +193,6 @@ supports two endpoints:
 1. Authorization Endpoint: which can handle requests with ``response_type``.
 2. Token Endpoint: which is the endpoint to issue tokens.
 
-.. versionchanged:: v0.12
-    Using ``AuthorizationEndpointMixin`` and ``TokenEndpointMixin`` instead of
-    ``AUTHORIZATION_ENDPOINT=True`` and ``TOKEN_ENDPOINT=True``.
-
 Creating a custom grant type with **BaseGrant**::
 
     from authlib.oauth2.rfc6749.grants import (

@@ -26,12 +26,6 @@ POST request. The metadata may contain a :ref:`JWT <jwt_guide>` ``software_state
 value. Endpoint can choose if it support ``software_statement``, it is not enabled
 by default.
 
-.. versionchanged:: v0.15
-
-    ClientRegistrationEndpoint has a breaking change in v0.15. Method of
-    ``authenticate_user`` is replaced by ``authenticate_token``, and parameters in
-    ``save_client`` is also changed.
-
 Before register the endpoint, developers MUST implement the missing methods::
 
     from authlib.oauth2.rfc7591 import ClientRegistrationEndpoint

@@ -15,11 +15,6 @@ Since OpenID Connect is built on OAuth 2.0 frameworks, you need to read
 .. module:: authlib.oauth2.rfc6749.grants
     :noindex:
 
-.. versionchanged:: v0.12
-
-    The Grant system has been redesigned from v0.12. This documentation ONLY
-    works for Authlib >=v0.12.
-
 Looking for OpenID Connect Client? Head over to :ref:`flask_client`.
 
 Understand JWT
