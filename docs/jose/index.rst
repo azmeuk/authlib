@@ -1,7 +1,7 @@
 .. _jose:
 
-JOSE Guide
-==========
+JOSE
+====
 
 This part of the documentation contains information on the JOSE implementation.
 It includes:
@@ -14,6 +14,7 @@ It includes:
 
 .. versionchanged:: 1.7
     We are deprecating ``authlib.jose`` module in favor of joserfc_.
+    It will be removed in Authlib 1.8.
 
 .. _joserfc: https://jose.authlib.org/en/
 
@@ -43,3 +44,4 @@ Follow the documentation below to find out more in detail.
     jwe
     jwk
     jwt
+    specs/index
