@@ -1,9 +1,8 @@
-Upgrade Guides
-==============
-
-Learn how to upgrade Authlib from version to version.
+Releases
+========
 
 .. toctree::
     :maxdepth: 2
 
+    changelog
     jose
