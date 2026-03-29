@@ -352,3 +352,47 @@ def test_token_generator(app, test_client, client, server):
     resp = json.loads(rv.data)
     assert "access_token" in resp
     assert "c-authorization_code.1." in resp["access_token"]
+
+
+def test_missing_scope_empty_default(test_client, client, monkeypatch):
+    """When client.get_allowed_scope() returns empty string for missing scope,
+    the authorization should proceed without a scope.
+    """
+
+    def get_allowed_scope_empty(scope):
+        if scope is None:
+            return ""
+        return scope
+
+    monkeypatch.setattr(client, "get_allowed_scope", get_allowed_scope_empty)
+
+    rv = test_client.post(authorize_url, data={"user_id": "1"})
+    assert "code=" in rv.location
+
+    params = dict(url_decode(urlparse.urlparse(rv.location).query))
+    code = params["code"]
+    headers = create_basic_header("client-id", "client-secret")
+    rv = test_client.post(
+        "/oauth/token",
+        data={
+            "grant_type": "authorization_code",
+            "code": code,
+        },
+        headers=headers,
+    )
+    resp = json.loads(rv.data)
+    assert "access_token" in resp
+    assert resp.get("scope", "") == ""
+
+
+def test_unsupported_response_type_does_not_redirect(test_client):
+    """Regression test for open redirect via unsupported response_type."""
+    url = (
+        "/oauth/authorize"
+        "?response_type=totally-unsupported"
+        "&redirect_uri=https%3A%2F%2Fevil.example%2Flanding"
+        "&state=s1"
+    )
+    rv = test_client.get(url)
+    assert rv.status_code == 400
+    assert rv.headers.get("Location") is None
