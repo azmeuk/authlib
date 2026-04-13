@@ -9,7 +9,7 @@ Here you can see the full list of changes between each Authlib release.
 Version 1.6.10
 --------------
 
-**Unreleased**
+**Released on Apr 13, 2026**
 
 - Fix redirecting to unvalidated ``redirect_uri`` on ``UnsupportedResponseTypeError``.
 
