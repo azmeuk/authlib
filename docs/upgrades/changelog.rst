@@ -29,6 +29,21 @@ Version 1.7.0
 
 Upgrade Guide: :ref:`joserfc_upgrade`.
 
+Version 1.6.11
+--------------
+
+**Released on Apr 16, 2026**
+
+- Fix CSRF vulnerability in the Starlette OAuth client when a ``cache`` is
+  configured.
+
+Version 1.6.10
+--------------
+
+**Released on Apr 13, 2026**
+
+- Fix redirecting to unvalidated ``redirect_uri`` on ``UnsupportedResponseTypeError``.
+
 Version 1.6.9
 -------------
 
