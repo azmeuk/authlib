@@ -9,7 +9,7 @@ Here you can see the full list of changes between each Authlib release.
 Version 1.7.0
 -------------
 
-**Unreleased**
+**Released on Apr 18, 2026**
 
 - Add support for `OpenID Connect RP-Initiated Logout 1.0
   <https://openid.net/specs/openid-connect-rpinitiated-1_0.html>`_.
