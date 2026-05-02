@@ -13,6 +13,8 @@ Version 1.7.1
 
 - Fix ``AuthlibDeprecationWarning`` being emitted on import when using integrations
   that do not use ``authlib.jose`` directly. :issue:`880`
+- Fix redirecting to unvalidated ``redirect_uri`` on ``InvalidScopeError``
+  in ``OpenIDImplicitGrant`` and ``OpenIDHybridGrant``.
 
 Version 1.7.0
 -------------
