@@ -9,7 +9,7 @@ Here you can see the full list of changes between each Authlib release.
 Version 1.7.1
 -------------
 
-**Unreleased**
+**Released on may 4, 2026**
 
 - Fix ``AuthlibDeprecationWarning`` being emitted on import when using integrations
   that do not use ``authlib.jose`` directly. :issue:`880`
