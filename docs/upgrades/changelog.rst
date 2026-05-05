@@ -6,6 +6,15 @@ Changelog
 
 Here you can see the full list of changes between each Authlib release.
 
+Version 1.7.2
+-------------
+
+**Unreleased**
+
+- Fix ``PrivateKeyJWT`` rejecting ``ECKey`` private keys (e.g. for ``ES256``).
+  The client private key is no longer forcibly imported as an ``RSAKey``;
+  ``joserfc``'s key auto-detection is used instead. :pr:`852`
+
 Version 1.7.1
 -------------
 
