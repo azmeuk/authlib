@@ -246,3 +246,17 @@ def test_sign_with_ec_key():
     assert decoded.claims["sub"] == "client_id_1"
     assert decoded.claims["aud"] == "https://provider.test/oauth/access_token"
     assert decoded.header["alg"] == "ES256"
+
+
+def test_sign_with_non_recommended_alg():
+    """Signing must work with algorithms outside joserfc's recommended set."""
+    jwt_signer = PrivateKeyJWT(alg="RS384")
+
+    auth = mock.MagicMock()
+    auth.client_id = "client_id_1"
+    auth.client_secret = private_key
+
+    data = jwt_signer.sign(auth, "https://provider.test/oauth/access_token")
+    decoded = jwt.decode(data, RSAKey.import_key(public_key), algorithms=["RS384"])
+
+    assert decoded.header["alg"] == "RS384"

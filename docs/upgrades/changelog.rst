@@ -14,6 +14,9 @@ Version 1.7.2
 - Fix ``PrivateKeyJWT`` rejecting ``ECKey`` private keys (e.g. for ``ES256``).
   The client private key is no longer forcibly imported as an ``RSAKey``;
   ``joserfc``'s key auto-detection is used instead. :pr:`852`
+- Allow ``ClientSecretJWT`` and ``PrivateKeyJWT`` to sign client assertions
+  with non-recommended algorithms (e.g. ``RS384``) when explicitly set via the
+  ``alg`` parameter. :issue:`883`
 
 Version 1.7.1
 -------------
