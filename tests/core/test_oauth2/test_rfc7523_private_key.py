@@ -1,7 +1,9 @@
 import time
+from types import SimpleNamespace
 from unittest import mock
 
 from joserfc import jwt
+from joserfc.jwk import ECKey
 from joserfc.jwk import RSAKey
 
 from authlib.oauth2.rfc7523 import PrivateKeyJWT
@@ -229,6 +231,21 @@ def test_sign_with_additional_claims():
         "role": "bar",
     }
     assert {"alg": "RS256", "typ": "JWT"} == decoded.header
+
+
+def test_sign_with_ec_key():
+    """``PrivateKeyJWT`` should accept an ``ECKey`` private key and sign with ES256."""
+    ec_key = ECKey.generate_key("P-256", private=True)
+    jwt_signer = PrivateKeyJWT(alg="ES256")
+    auth = SimpleNamespace(client_id="client_id_1", client_secret=ec_key)
+
+    data = jwt_signer.sign(auth, "https://provider.test/oauth/access_token")
+    decoded = jwt.decode(data, ec_key)
+
+    assert decoded.claims["iss"] == "client_id_1"
+    assert decoded.claims["sub"] == "client_id_1"
+    assert decoded.claims["aud"] == "https://provider.test/oauth/access_token"
+    assert decoded.header["alg"] == "ES256"
 
 
 def test_sign_with_non_recommended_alg():
