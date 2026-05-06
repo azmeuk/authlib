@@ -6,6 +6,15 @@ Changelog
 
 Here you can see the full list of changes between each Authlib release.
 
+Version 1.7.2
+-------------
+
+**Unreleased**
+
+- Allow ``ClientSecretJWT`` and ``PrivateKeyJWT`` to sign client assertions
+  with non-recommended algorithms (e.g. ``RS384``) when explicitly set via the
+  ``alg`` parameter. :issue:`883`
+
 Version 1.7.1
 -------------
 
