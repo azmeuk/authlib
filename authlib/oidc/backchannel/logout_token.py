@@ -62,4 +62,4 @@ def create_logout_token(
     if isinstance(key, dict):
         key = KeySet.import_key_set(key)  # type: ignore[arg-type]
 
-    return jwt.encode(header, payload, key)
+    return jwt.encode(header, payload, key, algorithms=[algorithm])
