@@ -1,4 +1,5 @@
 from joserfc.jwk import OctKey
+from joserfc.jwk import RSAKey
 from joserfc.jwk import ECKey
 from joserfc.jwk import OKPKey
 
