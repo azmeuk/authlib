@@ -6,6 +6,7 @@ import pytest
 from joserfc import jwt
 from joserfc.errors import InvalidClaimError
 from joserfc.jwk import KeySet
+from joserfc.jwk import import_key
 
 from authlib.oauth2.rfc6749 import AuthorizationServer
 from authlib.oidc import backchannel
@@ -128,6 +129,15 @@ def test_create_logout_token_accepts_jwks_dict():
     token = create_logout_token(ISSUER, CLIENT_ID, jwks_dict, sub="user-1")
     claims = decode_token(token).claims
     assert claims["iss"] == ISSUER
+
+
+def test_create_logout_token_accepts_jwk_dict():
+    """A single JWK passed as a dict is accepted as the signing key."""
+    jwk_dict = read_file_path("jwks_private.json")["keys"][0]
+    token = create_logout_token(ISSUER, CLIENT_ID, jwk_dict, sub="user-1")
+    claims = jwt.decode(token, import_key(jwk_dict)).claims
+    assert claims["iss"] == ISSUER
+    assert claims["sub"] == "user-1"
 
 
 def test_create_logout_token_unique_jti():
