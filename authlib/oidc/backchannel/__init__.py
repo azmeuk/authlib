@@ -10,12 +10,12 @@ from .discovery import OpenIDProviderMetadata
 from .logout_token import BACKCHANNEL_LOGOUT_EVENT
 from .logout_token import create_logout_token
 from .registration import ClientMetadataClaims
-from .sender import BackchannelLogoutExtension
+from .sender import BackchannelLogoutSender
 
 __all__ = [
-    "BackchannelLogoutExtension",
+    "BACKCHANNEL_LOGOUT_EVENT",
+    "BackchannelLogoutSender",
     "ClientMetadataClaims",
     "OpenIDProviderMetadata",
     "create_logout_token",
-    "BACKCHANNEL_LOGOUT_EVENT",
 ]

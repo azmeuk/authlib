@@ -15,12 +15,16 @@ class ClientMetadataClaims(BaseClaims):
 
     This can be used with :ref:`specs/rfc7591` and :ref:`specs/rfc7592` endpoints::
 
+        from authlib.oauth2 import rfc7591
+        from authlib.oidc import backchannel
+        from authlib.oidc import registration
+
         server.register_endpoint(
-            ClientRegistrationEndpoint(
+            MyClientRegistrationEndpoint(
                 claims_classes=[
                     rfc7591.ClientMetadataClaims,
-                    oidc.registration.ClientMetadataClaims,
-                    oidc.backchannel.ClientMetadataClaims,
+                    registration.ClientMetadataClaims,
+                    backchannel.ClientMetadataClaims,
                 ]
             )
         )
@@ -37,10 +41,15 @@ class ClientMetadataClaims(BaseClaims):
         self._validate_backchannel_logout_session_required()
 
     def _validate_backchannel_logout_uri(self):
+        # backchannel §2.2: "The back-channel logout URI MUST be an absolute URI
+        # [...]. The back-channel logout URI MUST NOT include a fragment
+        # component."
         # backchannel §2.2: "backchannel_logout_uri - OPTIONAL. RP URL that will
         # cause the RP to log itself out when sent a Logout Token by the OP. This
-        # URL MUST use the https scheme and MAY contain port, path, and query
-        # parameter components; it MUST NOT contain a fragment component."
+        # URL SHOULD use the https scheme and MAY contain port, path, and query
+        # parameter components; however, it MAY use the http scheme, provided
+        # that the Client Type is confidential, as defined in Section 2.1 of
+        # OAuth 2.0, and provided the OP allows the use of http RP URIs."
         uri = self.get("backchannel_logout_uri")
         if not uri:
             return
@@ -48,8 +57,9 @@ class ClientMetadataClaims(BaseClaims):
         if not is_valid_url(uri, fragments_allowed=False):
             raise InvalidClaimError("backchannel_logout_uri")
 
-        if not is_secure_transport(uri):
-            raise ValueError('"backchannel_logout_uri" MUST use "https" scheme')
+        is_public = self.get("token_endpoint_auth_method") == "none"
+        if is_public and not is_secure_transport(uri, allow_loopback=False):
+            raise InvalidClaimError("backchannel_logout_uri")
 
     def _validate_backchannel_logout_session_required(self):
         # backchannel §2.2: "backchannel_logout_session_required - OPTIONAL.

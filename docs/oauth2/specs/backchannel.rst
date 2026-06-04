@@ -27,50 +27,119 @@ The logout token is a JWT carrying the subject (``sub``) and/or session ID
 (``sid``) of the terminated session, allowing each RP to identify and destroy
 the corresponding local session.
 
+The logout does not go through the browser. The OP calls each RP directly:
+
+.. mermaid::
+
+    sequenceDiagram
+        autonumber
+        box rgba(80, 120, 220, 0.12) BackchannelLogoutSender
+            participant OP as OpenID Provider<br/>(Authorization Server)
+        end
+        participant RP as Relying Party<br/>(Client)
+
+        Note over OP: send_logout(sub, sid)
+        Note over OP: get_logout_sessions(sub, sid)
+        loop Each client with a backchannel_logout_uri
+            Note over OP: create_logout_token()
+            OP->>RP: POST backchannel_logout_uri (logout_token)
+            Note over RP: Validate the logout token<br/>and clear the session
+            alt Logout succeeded
+                RP-->>OP: 200 OK
+            else Invalid token or logout failed
+                autonumber 2
+                RP-->>OP: 400 Bad Request
+            end
+        end
+
+The application calls ``send_logout()`` when a session ends at the OP.
+``get_logout_sessions()`` returns the sessions of this user, or the clients of
+this session. The OP creates a signed logout token for each of them.
+
+1. ``deliver_logout_token()`` sends the token to the ``backchannel_logout_uri``
+   of the client, in a form-encoded ``POST`` request. The RP validates the
+   token and clears the matching sessions.
+2. The RP answers ``200 OK`` on success. Some frameworks answer
+   ``204 No Content`` instead. The RP answers ``400 Bad Request`` if the token
+   is invalid or the logout failed.
+
 Sending Logout Notifications
 -----------------------------
 
-:class:`BackchannelLogoutExtension` is an authorization server extension. Register
-it once, then retrieve it anywhere via
-:meth:`~authlib.oauth2.rfc6749.AuthorizationServer.get_extension`::
+:class:`BackchannelLogoutSender` sends the logout tokens. Subclass it, create
+one instance, and keep a reference to it::
 
-    from authlib.oidc.backchannel import BackchannelLogoutExtension
+    from authlib.oidc.backchannel import BackchannelLogoutSender
 
-    class MyBackchannelLogoutExtension(BackchannelLogoutExtension):
+    class MyBackchannelLogoutSender(BackchannelLogoutSender):
 
         def get_issuer(self):
             return "https://auth.example.com"
 
-        def get_signing_key(self):
-            # Return a joserfc Key, KeySet, or JWKS dict (private key required)
+        def resolve_client_private_key(self, client):
+            # Return the key that signs the ID tokens of this client:
+            # a joserfc Key, KeySet, JWK dict or JWKS dict.
             return load_private_jwks()
 
-        def get_logout_clients(self, sub, sid):
-            # Return all clients that have an active session for this user/session.
-            # Each object must expose:
-            #   - client_id (str)
-            #   - client_metadata (dict) with 'backchannel_logout_uri' and
-            #     optionally 'backchannel_logout_session_required'
-            return db.query_clients_for_session(sub=sub, sid=sid)
+        def get_logout_sessions(self, sub, sid):
+            # Return a (client, sid) pair for each active session of this
+            # user, or for each client of this session. Each client is a
+            # ClientMixin with a client_metadata dict.
+            return [(s.client, s.sid) for s in db.query_sessions(sub=sub, sid=sid)]
 
         def deliver_logout_token(self, client, uri, logout_token):
             # Perform the HTTP POST. Choose your own library and error handling.
-            import requests
-            requests.post(uri, data={"logout_token": logout_token}, timeout=5)
+            try:
+                httpx2.post(uri, data={"logout_token": logout_token}, timeout=5)
+            except httpx2.HTTPError:
+                logger.exception("Back-channel logout failed for %s", uri)
 
 
-    server.register_extension(MyBackchannelLogoutExtension())
+    backchannel_logout = MyBackchannelLogoutSender()
 
-Then call :meth:`~BackchannelLogoutExtension.send_logout` from anywhere a session
+Then call :meth:`~BackchannelLogoutSender.send_logout` from anywhere a session
 ends — an endpoint, an admin view, a background task::
 
-    server.get_extension(BackchannelLogoutExtension).send_logout(sub="user-123", sid="sess-abc")
+    backchannel_logout.send_logout(sub="user-123", sid="sess-abc")
 
-:meth:`~BackchannelLogoutExtension.send_logout` takes care of:
+:meth:`~BackchannelLogoutSender.send_logout` takes care of:
 
 - skipping clients that have no ``backchannel_logout_uri``
-- skipping clients that require a ``sid`` when none is available
-- generating a unique, signed logout token per client
+- skipping clients that require a ``sid`` when the session has none
+- generating a unique, signed logout token per session
+
+Signing Keys and Algorithms
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Logout tokens are signed with the same keys as ID tokens.
+:meth:`~BackchannelLogoutSender.resolve_client_private_key` returns the key
+for each client, like in :class:`~authlib.oidc.core.grants.OpenIDCode`.
+
+The algorithm comes from the ``id_token_signed_response_alg`` client metadata.
+It defaults to ``RS256`` when this metadata is missing or ``none``. Override
+:meth:`~BackchannelLogoutSender.get_client_algorithm` to change this.
+
+Subject Identifiers
+~~~~~~~~~~~~~~~~~~~
+
+The ``sub`` parameter of :meth:`~BackchannelLogoutSender.send_logout` is the
+identifier of the user in your application.
+:meth:`~BackchannelLogoutSender.get_logout_sessions` receives it to find the
+sessions of the user.
+:meth:`~BackchannelLogoutSender.get_client_sub` turns it into the ``sub`` claim
+of the logout token for each client.
+
+The ``sub`` claim of the logout token must match the ``sub`` claim of the ID
+tokens of the client. By default, :meth:`~BackchannelLogoutSender.get_client_sub`
+returns ``sub`` unchanged. Override it when the ``sub`` claim of your ID tokens
+is not the user identifier. For instance, with pairwise subject identifiers,
+this value is different for each client::
+
+    class MyBackchannelLogoutSender(BackchannelLogoutSender):
+        def get_client_sub(self, client, sub):
+            if client.client_metadata.get("subject_type") == "pairwise":
+                return compute_pairwise_sub(client, sub)
+            return sub
 
 Integration with RP-Initiated Logout
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -78,75 +147,122 @@ Integration with RP-Initiated Logout
 A common pattern is to trigger backchannel logout from
 :class:`~authlib.oidc.rpinitiated.EndSessionEndpoint`::
 
-    from authlib.oidc.backchannel import BackchannelLogoutExtension
     from authlib.oidc.rpinitiated import EndSessionEndpoint
 
     class MyEndSessionEndpoint(EndSessionEndpoint):
-
-        def end_session(self, end_session_request):
-            claims = end_session_request.id_token_claims or {}
-            self.server.get_extension(BackchannelLogoutExtension).send_logout(
-                sub=claims.get("sub"),
-                sid=claims.get("sid"),
-            )
-            session.clear()
-
         def get_server_jwks(self):
             return load_public_jwks()
+
+        def end_session(self, end_session_request):
+            user_id = session.get("user_id")
+            sid = session.get("sid")
+            session.clear()
+            if user_id or sid:
+                backchannel_logout.send_logout(sub=user_id, sid=sid)
+
+Use the identifiers of the OP session that you are closing.
+Do not use the claims of the ``id_token_hint``.
+The ``id_token_hint`` is optional, so the request may have no claims.
+With pairwise subject identifiers, its ``sub`` is the value for one client,
+not the identifier of the user.
 
 Session Tracking
 ~~~~~~~~~~~~~~~~
 
 To avoid notifying every registered client on each logout,
-:meth:`~BackchannelLogoutExtension.get_logout_clients` should return only the
-clients that have an active session for the given user or session ID. Implement
-it to query whatever session store your application maintains (e.g. a table of
-active ``(user, client)`` pairs keyed by ``sid``).
+:meth:`~BackchannelLogoutSender.get_logout_sessions` should return only the
+active sessions for the given user or session ID. Implement it to query
+whatever session store your application maintains (e.g. a table of active
+``(user, client, sid)`` rows).
 
-The ``sid`` (session ID) is established at authentication time and included as a
-claim in the ID Token issued to the RP. The RP therefore knows its ``sid`` from
-the moment the session is created, and can use it to match an incoming logout
-token to the correct local session.
+It returns ``(client, sid)`` pairs. Each pair gets its own logout token, with
+this ``sid``. When you log out a user from all their sessions, return one pair
+per session. A client with several sessions then gets one token per session.
 
-The ``sub`` and ``sid`` parameters are both optional so that ``send_logout`` can
-be called with whichever identifiers are available::
+If you do not know the ``sid`` of a session, use ``None``. The clients that
+set ``backchannel_logout_session_required`` are then skipped, because their
+logout token would need a ``sid``. :meth:`~BackchannelLogoutSender.send_logout`
+does not report the skipped clients, so these clients are not logged out.
 
-    sender = server.get_extension(BackchannelLogoutExtension)
+The ``sid`` (session ID) identifies a session at the OP. All the RPs logged in
+with this session share the same ``sid``. The RP learns it from the ``sid``
+claim of the ID token, and uses it to find its local session when it receives
+a logout token.
+
+Authlib does not add the ``sid`` claim to ID tokens. If you advertise
+``backchannel_logout_session_supported``, the spec requires the ``sid`` claim
+in the ID tokens. With the authorization code flow, you can add it with
+:class:`~authlib.oidc.core.grants.OpenIDCode`::
+
+    class MyOpenIDCode(OpenIDCode):
+        def get_authorization_code_claims(self, authorization_code):
+            claims = super().get_authorization_code_claims(authorization_code)
+            claims["sid"] = authorization_code.sid
+            return claims
+
+Here, ``authorization_code.sid`` is a column of your authorization code model.
+Fill it with the session ID of the user when you create the code.
+
+Call ``send_logout`` with the identifiers that you have.
+At least one of ``sub`` and ``sid`` is required.
+Without both, ``send_logout`` raises a ``ValueError``::
 
     # Logout by subject only (all sessions for this user)
-    sender.send_logout(sub="user-123")
+    backchannel_logout.send_logout(sub="user-123")
 
     # Logout a specific session
-    sender.send_logout(sub="user-123", sid="sess-abc")
+    backchannel_logout.send_logout(sub="user-123", sid="sess-abc")
 
     # Session-only logout (when sub is not available)
-    sender.send_logout(sid="sess-abc")
+    backchannel_logout.send_logout(sid="sess-abc")
 
 HTTP Delivery
 ~~~~~~~~~~~~~
 
 The spec requires a ``POST`` request with ``Content-Type: application/x-www-form-urlencoded``
-and a single ``logout_token`` parameter. The OP SHOULD attempt parallel delivery
-to multiple RPs and MAY retry on failure. Implement this in
-:meth:`~BackchannelLogoutExtension.deliver_logout_token`::
+and a ``logout_token`` parameter. Implement this in
+:meth:`~BackchannelLogoutSender.deliver_logout_token`::
 
     def deliver_logout_token(self, client, uri, logout_token):
-        import requests
         try:
-            resp = requests.post(
-                uri,
-                data={"logout_token": logout_token},
-                timeout=5,
-            )
+            resp = httpx2.post(uri, data={"logout_token": logout_token}, timeout=5)
             resp.raise_for_status()
-        except requests.RequestException:
-            # Log the failure; decide on retry policy
-            logger.warning("Failed to deliver logout to %s", uri)
+        except httpx2.HTTPError:
+            logger.exception("Back-channel logout failed for %s", uri)
+
+By default, the tokens are sent one after another. Authlib does not catch the
+exceptions raised by
+:meth:`~BackchannelLogoutSender.deliver_logout_token`. An exception stops
+the loop, and the next clients are not notified. It also reaches the caller of
+:meth:`~BackchannelLogoutSender.send_logout`. Catch the errors you expect in
+your implementation.
+
+The spec encourages OPs to send the logout requests in parallel. To do so,
+override :meth:`~BackchannelLogoutSender.deliver_logout_tokens`. It receives
+all the ``(client, uri, logout_token)`` tuples of a logout. For instance, you
+can push them to a task queue::
+
+    def deliver_logout_tokens(self, deliveries):
+        for client, uri, logout_token in deliveries:
+            send_logout_token_task.delay(uri, logout_token)
+
+The tokens are signed before they enter the queue. They expire after
+:attr:`~BackchannelLogoutSender.EXPIRES_IN` seconds. Keep the queue delay and
+the retries under this limit, or the RPs will reject expired tokens. You can
+raise :attr:`~BackchannelLogoutSender.EXPIRES_IN`, but a captured token can
+then be replayed for a longer time.
+
+The OP should not send a logout token again, unless the previous request may
+have failed because of a temporary error, such as a network outage. In this
+case, wait before sending it again.
 
 Logout Token
 ------------
 
-Logout tokens are generated automatically by :meth:`~BackchannelLogoutExtension.send_logout`.
+Logout tokens are generated automatically by :meth:`~BackchannelLogoutSender.send_logout`.
+They expire after :attr:`~BackchannelLogoutSender.EXPIRES_IN` seconds, 120 by
+default. The spec recommends at most two minutes.
+
 You can also create them directly with :func:`create_logout_token` if needed::
 
     from authlib.oidc.backchannel import create_logout_token
@@ -179,28 +295,44 @@ Relying Parties register their back-channel logout endpoint via
 :ref:`RFC7591: OAuth 2.0 Dynamic Client Registration Protocol <specs/rfc7591>`.
 
 To support back-channel logout client metadata, add the claims class to your
-registration and configuration endpoints::
+registration and configuration endpoints.
+``MyClientRegistrationEndpoint`` is your subclass of
+:class:`~authlib.oauth2.rfc7591.ClientRegistrationEndpoint`::
 
-    from authlib import oidc
     from authlib.oauth2 import rfc7591
+    from authlib.oidc import backchannel
+    from authlib.oidc import registration
 
     authorization_server.register_endpoint(
-        ClientRegistrationEndpoint(
+        MyClientRegistrationEndpoint(
             claims_classes=[
                 rfc7591.ClientMetadataClaims,
-                oidc.registration.ClientMetadataClaims,
-                oidc.backchannel.ClientMetadataClaims,
+                registration.ClientMetadataClaims,
+                backchannel.ClientMetadataClaims,
             ]
         )
     )
 
 The following client metadata parameters are supported:
 
-- **backchannel_logout_uri** — The RP's back-channel logout endpoint. Must use
-  ``https`` (``http`` is allowed for ``localhost``). Must not contain a fragment.
+- **backchannel_logout_uri** — The RP's back-channel logout endpoint. Must not
+  contain a fragment. Public clients must use ``https``, even on
+  ``localhost``. Confidential clients may use ``http``.
 - **backchannel_logout_session_required** — Boolean. When ``True``, the OP will
   only send a logout token to this client if a ``sid`` is available. Defaults to
   ``False``.
+
+.. warning::
+
+    The OP sends ``POST`` requests to the ``backchannel_logout_uri`` of each
+    client. With dynamic client registration, anyone can register this URI.
+    An attacker can make your OP send requests to your internal network, such
+    as ``http://localhost`` or ``http://10.0.0.1``. This is a Server-Side
+    Request Forgery (SSRF).
+
+    In :meth:`~BackchannelLogoutSender.deliver_logout_token`, block the
+    requests to private, loopback and link-local addresses, after the DNS
+    resolution. Do not follow redirections.
 
 Discovery
 ---------
@@ -226,7 +358,7 @@ the discovery class to your metadata validation::
 API Reference
 -------------
 
-.. autoclass:: BackchannelLogoutExtension
+.. autoclass:: BackchannelLogoutSender
     :member-order: bysource
     :members:
 
