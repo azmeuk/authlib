@@ -8,6 +8,7 @@ import uuid
 
 from joserfc import jwt
 from joserfc.jwk import KeySet
+from joserfc.jwk import import_key
 
 BACKCHANNEL_LOGOUT_EVENT = "http://schemas.openid.net/event/backchannel-logout"
 
@@ -25,7 +26,7 @@ def create_logout_token(
 
     :param issuer: The OP's issuer identifier.
     :param audience: The client_id of the RP being notified.
-    :param key: The signing key (joserfc Key, KeySet, or JWKS dict).
+    :param key: The signing key (joserfc Key, KeySet, JWK dict, or JWKS dict).
     :param algorithm: JWT signing algorithm.
     :param sub: Subject identifier. Required if ``sid`` is not provided.
     :param sid: Session ID. Required if ``sub`` is not provided.
@@ -60,6 +61,9 @@ def create_logout_token(
     header = {"alg": algorithm, "typ": "logout+jwt"}
 
     if isinstance(key, dict):
-        key = KeySet.import_key_set(key)  # type: ignore[arg-type]
+        if "keys" in key:
+            key = KeySet.import_key_set(key)  # type: ignore[arg-type]
+        else:
+            key = import_key(key)
 
     return jwt.encode(header, payload, key, algorithms=[algorithm])
