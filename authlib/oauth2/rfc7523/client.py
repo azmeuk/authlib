@@ -46,7 +46,15 @@ class JWTBearerClientAssertion:
         assertion = data.get("client_assertion")
         if assertion_type == ASSERTION_TYPE and assertion:
             headers, claims = self.extract_assertion(assertion)
+            # "sub" is read before the signature and the claims are verified,
+            # so it cannot be assumed to be present nor to be a string.
+            if "sub" not in claims:
+                raise InvalidClientError(description="Missing claim: 'sub'")
+
             client_id = claims["sub"]
+            if not isinstance(client_id, str):
+                raise InvalidClientError(description="Invalid claim: 'sub'")
+
             client = query_client(client_id)
             if not client:
                 raise InvalidClientError(
@@ -137,11 +145,20 @@ class JWTBearerClientAssertion:
         )
 
     def extract_assertion(self, assertion: str):
-        obj = jws.extract_compact(to_bytes(assertion))
+        try:
+            obj = jws.extract_compact(to_bytes(assertion))
+        except JoseError as e:
+            log.debug("Assertion Error: %r", e)
+            raise InvalidClientError(description="Invalid JWT assertion.") from e
+
         try:
             claims = json_loads(obj.payload)
         except ValueError:
             raise InvalidClientError(description="Invalid JWT payload.") from None
+
+        if not isinstance(claims, dict):
+            raise InvalidClientError(description="Invalid JWT payload.")
+
         return obj.headers(), claims
 
     def validate_jti(self, claims, jti):

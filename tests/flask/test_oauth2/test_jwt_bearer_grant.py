@@ -1,3 +1,5 @@
+import time
+
 import pytest
 from flask import json
 from joserfc import jws
@@ -229,3 +231,88 @@ def test_invalid_audience(test_client, server):
     )
     resp = json.loads(rv.data)
     assert resp["error"] == "invalid_grant"
+
+
+def test_malformed_assertion(test_client):
+    """An 'assertion' that is not a compact JWS is rejected with an OAuth
+    error."""
+    rv = test_client.post(
+        "/oauth/token",
+        data={"grant_type": JWTBearerGrant.GRANT_TYPE, "assertion": "not-a-jwt"},
+    )
+    resp = json.loads(rv.data)
+    assert resp["error"] == "invalid_grant"
+    assert resp["error_description"] == "Invalid JWT assertion."
+
+
+def test_non_object_payload_assertion(test_client):
+    """An assertion payload that is valid JSON but not a JSON object cannot
+    hold claims."""
+    assertion = jws.serialize_compact(
+        {"alg": "HS256", "kid": "1"},
+        '["client-id"]',
+        OctKey.import_key("foo"),
+    )
+    rv = test_client.post(
+        "/oauth/token",
+        data={"grant_type": JWTBearerGrant.GRANT_TYPE, "assertion": assertion},
+    )
+    resp = json.loads(rv.data)
+    assert resp["error"] == "invalid_grant"
+    assert resp["error_description"] == "Invalid JWT payload."
+
+
+def test_missing_iss_claim(test_client):
+    """The 'iss' claim is read before the claims are verified, so its absence
+    must be reported as an OAuth error."""
+    assertion = jwt.encode(
+        {"alg": "HS256", "kid": "1"},
+        {"aud": "https://provider.test/token", "exp": int(time.time() + 3600)},
+        OctKey.import_key("foo"),
+    )
+    rv = test_client.post(
+        "/oauth/token",
+        data={"grant_type": JWTBearerGrant.GRANT_TYPE, "assertion": assertion},
+    )
+    resp = json.loads(rv.data)
+    assert resp["error"] == "invalid_grant"
+    assert resp["error_description"] == "Missing claim: 'iss'"
+
+
+def test_non_string_iss_claim(test_client):
+    """A non-string 'iss' claim must not reach 'resolve_issuer_client'."""
+    assertion = jwt.encode(
+        {"alg": "HS256", "kid": "1"},
+        {
+            "iss": ["client-id"],
+            "aud": "https://provider.test/token",
+            "exp": int(time.time() + 3600),
+        },
+        OctKey.import_key("foo"),
+    )
+    rv = test_client.post(
+        "/oauth/token",
+        data={"grant_type": JWTBearerGrant.GRANT_TYPE, "assertion": assertion},
+    )
+    resp = json.loads(rv.data)
+    assert resp["error"] == "invalid_grant"
+    assert resp["error_description"] == "Invalid claim: 'iss'"
+
+
+def test_unknown_issuer(test_client):
+    """'resolve_issuer_client' returning None yields an 'invalid_grant'
+    error."""
+    assertion = JWTBearerGrant.sign(
+        "foo",
+        issuer="unknown-client",
+        audience="https://provider.test/token",
+        subject=None,
+        header={"alg": "HS256", "kid": "1"},
+    )
+    rv = test_client.post(
+        "/oauth/token",
+        data={"grant_type": JWTBearerGrant.GRANT_TYPE, "assertion": assertion},
+    )
+    resp = json.loads(rv.data)
+    assert resp["error"] == "invalid_grant"
+    assert resp["error_description"] == "The client does not exist on this server."

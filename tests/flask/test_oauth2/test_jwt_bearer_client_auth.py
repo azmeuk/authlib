@@ -342,3 +342,94 @@ def test_issuer_as_audience(test_client, server):
     )
     resp = json.loads(rv.data)
     assert "access_token" in resp
+
+
+def test_malformed_assertion(test_client, server):
+    """A 'client_assertion' that is not a compact JWS is rejected with an OAuth
+    error."""
+    register_jwt_client_auth(server)
+    rv = test_client.post(
+        "/oauth/token",
+        data={
+            "grant_type": "client_credentials",
+            "client_assertion_type": JWTBearerClientAssertion.CLIENT_ASSERTION_TYPE,
+            "client_assertion": "not-a-jwt",
+        },
+    )
+    resp = json.loads(rv.data)
+    assert resp["error"] == "invalid_client"
+    assert resp["error_description"] == "Invalid JWT assertion."
+
+
+def test_non_object_payload_assertion(test_client, server):
+    """An assertion payload that is valid JSON but not a JSON object cannot
+    hold claims."""
+    register_jwt_client_auth(server)
+    client_assertion = jws.serialize_compact(
+        {"alg": "HS256"},
+        '["client-id"]',
+        OctKey.import_key("client-secret"),
+    )
+    rv = test_client.post(
+        "/oauth/token",
+        data={
+            "grant_type": "client_credentials",
+            "client_assertion_type": JWTBearerClientAssertion.CLIENT_ASSERTION_TYPE,
+            "client_assertion": client_assertion,
+        },
+    )
+    resp = json.loads(rv.data)
+    assert resp["error"] == "invalid_client"
+    assert resp["error_description"] == "Invalid JWT payload."
+
+
+def test_missing_sub_claim(test_client, server):
+    """The 'sub' claim is read before the claims are verified, so its absence
+    must be reported as an OAuth error."""
+    register_jwt_client_auth(server)
+    claims = {
+        "iss": "client-id",
+        "aud": "https://provider.test/oauth/token",
+        "exp": int(time.time() + 3600),
+        "jti": "nonce",
+    }
+    client_assertion = jwt.encode(
+        {"alg": "HS256"}, claims, OctKey.import_key("client-secret")
+    )
+    rv = test_client.post(
+        "/oauth/token",
+        data={
+            "grant_type": "client_credentials",
+            "client_assertion_type": JWTBearerClientAssertion.CLIENT_ASSERTION_TYPE,
+            "client_assertion": client_assertion,
+        },
+    )
+    resp = json.loads(rv.data)
+    assert resp["error"] == "invalid_client"
+    assert resp["error_description"] == "Missing claim: 'sub'"
+
+
+def test_non_string_sub_claim(test_client, server):
+    """A non-string 'sub' claim must not reach 'query_client'."""
+    register_jwt_client_auth(server)
+    claims = {
+        "iss": "client-id",
+        "sub": {"client_id": "client-id"},
+        "aud": "https://provider.test/oauth/token",
+        "exp": int(time.time() + 3600),
+        "jti": "nonce",
+    }
+    client_assertion = jwt.encode(
+        {"alg": "HS256"}, claims, OctKey.import_key("client-secret")
+    )
+    rv = test_client.post(
+        "/oauth/token",
+        data={
+            "grant_type": "client_credentials",
+            "client_assertion_type": JWTBearerClientAssertion.CLIENT_ASSERTION_TYPE,
+            "client_assertion": client_assertion,
+        },
+    )
+    resp = json.loads(rv.data)
+    assert resp["error"] == "invalid_client"
+    assert resp["error_description"] == "Invalid claim: 'sub'"
