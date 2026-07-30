@@ -41,6 +41,10 @@ Version 1.8.0
   ``joserfc`` 1.6.1.
 - Declare lower bounds for the optional integration dependencies and test them
   in CI against their minimum versions with uv's ``lowest-direct`` resolution.
+- The token endpoint answers malformed RFC 7523 assertions with an
+  ``invalid_client`` or ``invalid_grant`` error instead of raising an unhandled
+  exception. ``JWTBearerGrant.resolve_issuer_client()`` may return ``None`` for
+  an unknown issuer.
 
 Version 1.7.2
 -------------
