@@ -23,6 +23,14 @@ Version 1.8.0
   client did not configure an algorithm. Override
   ``get_client_algorithm(client)`` if you need the previous behaviour.
   :issue:`806`
+- Fix ``is_secure_transport()`` accepting cleartext URIs whose ``userinfo``
+  component looks like a loopback host, such as
+  ``http://localhost:80@attacker.test/cb``. The loopback exemption is now
+  matched on the parsed host, and no longer requires an explicit port.
+- Reject URIs with a ``userinfo`` component during client and server metadata
+  validation, as in ``https://client.test@attacker.test/cb``. URIs that
+  ``urlparse`` refuses to parse, such as ``http://[not-an-ip]/``, are also
+  rejected instead of raising an unhandled ``ValueError``.
 - Cast the ``sub`` claim to a string in the RFC 9068 and RFC 7523
   ``JWTBearerTokenGenerator``, as required by RFC 7519 Section 4.1.2.
   ``joserfc`` 1.7.3 started validating this claim and rejected the previously
