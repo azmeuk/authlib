@@ -37,6 +37,8 @@ def test_secure_transport(uri):
         "http://127.0.0.1.provider.test/cb",
         # 0.0.0.0 is unspecified, not loopback
         "http://0.0.0.0:8080/cb",
+        # a mapped IPv4 address that is not loopback
+        "http://[::ffff:93.184.216.34]:8080/cb",
         # not a transport at all
         "ftp://localhost:8080/cb",
         "urn:ietf:wg:oauth:2.0:oob",

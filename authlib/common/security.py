@@ -36,6 +36,13 @@ def is_secure_transport(uri):
         return True
 
     try:
-        return ipaddress.ip_address(parts.hostname).is_loopback
+        address = ipaddress.ip_address(parts.hostname)
     except ValueError:
         return False
+
+    # IPv6Address.is_loopback only accounts for the mapped IPv4 address since
+    # CPython 3.10.16, 3.11.11 and 3.12.4.
+    if isinstance(address, ipaddress.IPv6Address) and address.ipv4_mapped:
+        address = address.ipv4_mapped
+
+    return address.is_loopback
