@@ -9,7 +9,7 @@ Here you can see the full list of changes between each Authlib release.
 Version 1.8.0
 -------------
 
-**Unreleased**
+**Released on Aug 30, 2026**
 
 - **Breaking change**: ``authlib.integrations.httpx_client`` is now powered by
   ``httpx2`` instead of ``httpx``. Install ``httpx2`` instead of ``httpx`` to
