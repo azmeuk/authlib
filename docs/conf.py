@@ -1,9 +1,10 @@
 import warnings
 
+# Strings wrapped with _() are extracted by external translation projects.
+from sphinx.locale import _
+
 import authlib
 from authlib.deprecate import AuthlibDeprecationWarning
-
-from sphinx.locale import _
 
 # we will keep authlib.jose module until 2.0.0
 warnings.simplefilter("ignore", AuthlibDeprecationWarning)
