@@ -11,6 +11,7 @@ from authlib.oauth2 import rfc9101
 from authlib.oauth2.rfc6749.grants import (
     AuthorizationCodeGrant as _AuthorizationCodeGrant,
 )
+from authlib.oidc.core import OpenIDJWTAuthenticationRequest
 from tests.util import read_file_path
 
 from .models import Client
@@ -103,8 +104,10 @@ def register_request_object_extension(
     request_object=None,
     support_request=True,
     support_request_uri=True,
+    extension_cls=rfc9101.JWTAuthenticationRequest,
+    use_default_uri_validator=False,
 ):
-    class JWTAuthenticationRequest(rfc9101.JWTAuthenticationRequest):
+    class JWTAuthenticationRequest(extension_cls):
         def resolve_client_public_key(self, client):
             return read_file_path("jwk_public.json")
 
@@ -123,6 +126,10 @@ def register_request_object_extension(
     extension = JWTAuthenticationRequest(
         support_request=support_request, support_request_uri=support_request_uri
     )
+    if not use_default_uri_validator:
+        extension.validate_request_uri = lambda uri, client: (
+            uri == "https://client.test/request_object"
+        )
     server.register_extension(extension)
     return extension
 
@@ -558,7 +565,6 @@ def test_signature_requirement_with_explicit_algorithms(
         assert response.data == b"ok"
 
 
-@pytest.mark.parametrize("require_registration", [False, True])
 @pytest.mark.parametrize(
     "request_uri",
     [
@@ -572,12 +578,8 @@ def test_signature_requirement_with_explicit_algorithms(
         "",
     ],
 )
-def test_unregistered_request_uri_rejected_before_fetch(
-    test_client, server, require_registration, request_uri
-):
-    extension = register_request_object_extension(
-        server, metadata={"require_request_uri_registration": require_registration}
-    )
+def test_unapproved_request_uri_rejected_before_fetch(test_client, server, request_uri):
+    extension = register_request_object_extension(server)
     extension.get_request_object = Mock(return_value="unexpected fetch")
     response = test_client.get(
         add_params_to_uri(
@@ -593,8 +595,9 @@ def test_unregistered_request_uri_rejected_before_fetch(
 
 @pytest.mark.parametrize("require_registration", [False, True])
 @pytest.mark.parametrize("registered", [False, True])
-def test_custom_request_uri_validator_and_registration(
-    test_client, server, client, db, require_registration, registered
+@pytest.mark.parametrize("parameter", ["request", "request_uri"])
+def test_oidc_request_uri_validator_and_registration(
+    test_client, server, client, db, require_registration, registered, parameter
 ):
     request_uri = "urn:example:stored-request"
     if registered:
@@ -608,27 +611,50 @@ def test_custom_request_uri_validator_and_registration(
         jwk.import_key(read_file_path("jwk_private.json")),
     )
     extension = register_request_object_extension(
-        server, metadata={"require_request_uri_registration": require_registration}
+        server,
+        metadata={"require_request_uri_registration": require_registration},
+        extension_cls=OpenIDJWTAuthenticationRequest,
     )
-    extension.validate_request_uri = lambda uri, client: uri == request_uri
+    extension.validate_request_uri = Mock(
+        side_effect=lambda uri, client: uri == request_uri
+    )
     extension.get_request_object = Mock(return_value=request_object)
     response = test_client.get(
         add_params_to_uri(
-            authorize_url, {"client_id": "client-id", "request_uri": request_uri}
+            authorize_url,
+            {
+                "client_id": "client-id",
+                parameter: request_uri
+                if parameter == "request_uri"
+                else request_object,
+            },
         )
     )
-    if require_registration and not registered:
+    if parameter == "request":
+        assert response.data == b"ok"
+        extension.validate_request_uri.assert_not_called()
+        extension.get_request_object.assert_not_called()
+    elif require_registration and not registered:
         assert response.status_code == 400
         assert response.json["error"] == "invalid_request_uri"
         extension.get_request_object.assert_not_called()
+        extension.validate_request_uri.assert_not_called()
     else:
         assert response.data == b"ok"
+        extension.validate_request_uri.assert_called_once_with(request_uri, client)
         extension.get_request_object.assert_called_once_with(request_uri)
 
 
-def test_request_uri_without_registered_uris(test_client, server):
-    extension = register_request_object_extension(server)
-    extension.get_client_request_uris = lambda client: []
+@pytest.mark.parametrize(
+    "extension_cls", [rfc9101.JWTAuthenticationRequest, OpenIDJWTAuthenticationRequest]
+)
+def test_request_uri_without_validation_policy(test_client, server, extension_cls):
+    extension = register_request_object_extension(
+        server,
+        metadata={"require_request_uri_registration": True},
+        extension_cls=extension_cls,
+        use_default_uri_validator=True,
+    )
     extension.get_request_object = Mock(return_value="unexpected fetch")
     response = test_client.get(
         add_params_to_uri(
@@ -668,8 +694,15 @@ def test_invalid_request_object_signature(test_client, server, parameter):
     assert response.json["error"] == "invalid_request_object"
 
 
-def test_custom_request_uri_validator_rejects_registered_uri(test_client, server):
-    extension = register_request_object_extension(server)
+@pytest.mark.parametrize("require_registration", [False, True])
+def test_oidc_request_uri_policy_rejects_registered_uri(
+    test_client, server, require_registration
+):
+    extension = register_request_object_extension(
+        server,
+        metadata={"require_request_uri_registration": require_registration},
+        extension_cls=OpenIDJWTAuthenticationRequest,
+    )
     extension.validate_request_uri = lambda uri, client: False
     extension.get_request_object = Mock(return_value="unexpected fetch")
     response = test_client.get(
@@ -683,4 +716,78 @@ def test_custom_request_uri_validator_rejects_registered_uri(test_client, server
     )
     assert response.status_code == 400
     assert response.json["error"] == "invalid_request_uri"
+    extension.get_request_object.assert_not_called()
+
+
+@pytest.mark.parametrize("require_registration", [False, True])
+def test_jar_request_uri_does_not_require_oidc_registration(
+    test_client, server, require_registration
+):
+    request_object = jwt.encode(
+        {"alg": "RS256"},
+        {"client_id": "client-id", "response_type": "code"},
+        jwk.import_key(read_file_path("jwk_private.json")),
+    )
+    extension = register_request_object_extension(
+        server,
+        metadata={"require_request_uri_registration": require_registration},
+        request_object=request_object,
+    )
+    extension.get_client_request_uris = Mock(return_value=[])
+    response = test_client.get(
+        add_params_to_uri(
+            authorize_url,
+            {
+                "client_id": "client-id",
+                "request_uri": "https://client.test/request_object",
+            },
+        )
+    )
+    assert response.data == b"ok"
+    extension.get_client_request_uris.assert_not_called()
+
+
+def test_oidc_request_uri_without_registration_hook(test_client, server, monkeypatch):
+    extension = register_request_object_extension(
+        server,
+        metadata={"require_request_uri_registration": True},
+        extension_cls=OpenIDJWTAuthenticationRequest,
+    )
+    # An implementation that does not provide registered URIs must reject the URI.
+    monkeypatch.delattr(type(extension), "get_client_request_uris")
+    extension.validate_request_uri = Mock(return_value=True)
+    extension.get_request_object = Mock(return_value="unexpected fetch")
+    response = test_client.get(
+        add_params_to_uri(
+            authorize_url,
+            {
+                "client_id": "client-id",
+                "request_uri": "https://client.test/request_object",
+                "state": "s",
+            },
+        )
+    )
+    assert response.status_code == 400
+    assert response.json["error"] == "invalid_request_uri"
+    assert response.json["state"] == "s"
+    extension.validate_request_uri.assert_not_called()
+    extension.get_request_object.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "extension_cls", [rfc9101.JWTAuthenticationRequest, OpenIDJWTAuthenticationRequest]
+)
+def test_empty_request_uri_rejected_before_policy(test_client, server, extension_cls):
+    extension = register_request_object_extension(server, extension_cls=extension_cls)
+    extension.validate_request_uri = Mock(return_value=True)
+    extension.get_request_object = Mock(return_value="unexpected fetch")
+    response = test_client.get(
+        add_params_to_uri(
+            authorize_url,
+            {"client_id": "client-id", "request_uri": ""},
+        )
+    )
+    assert response.status_code == 400
+    assert response.json["error"] == "invalid_request_uri"
+    extension.validate_request_uri.assert_not_called()
     extension.get_request_object.assert_not_called()

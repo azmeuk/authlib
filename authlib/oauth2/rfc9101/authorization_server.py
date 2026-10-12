@@ -31,8 +31,8 @@ class JWTAuthenticationRequest:
             def resolve_client_public_key(self, client: ClientMixin):
                 return get_jwks_for_client(client)
 
-            def get_client_request_uris(self, client: ClientMixin):
-                return client.request_uris
+            def validate_request_uri(self, request_uri: str, client: ClientMixin):
+                return is_approved_request_uri(request_uri, client)
 
             def get_request_object(self, request_uri: str):
                 # Apply the retrieval safeguards documented in get_request_object.
@@ -43,7 +43,6 @@ class JWTAuthenticationRequest:
                     "issuer": ...,
                     "authorization_endpoint": ...,
                     "require_signed_request_object": ...,
-                    "require_request_uri_registration": True,
                 }
 
             def get_client_require_signed_request_object(self, client: ClientMixin):
@@ -162,13 +161,7 @@ class JWTAuthenticationRequest:
     ) -> str:
         if "request_uri" in request.payload.data:
             request_uri = request.payload.data["request_uri"]
-            metadata = self.get_server_metadata()
-            if not request_uri or (
-                metadata.get("require_request_uri_registration", False)
-                and request_uri not in self.get_client_request_uris(client)
-            ):
-                raise InvalidRequestUriError(state=request.payload.state)
-            if not self.validate_request_uri(request_uri, client):
+            if not request_uri or not self.validate_request_uri(request_uri, client):
                 raise InvalidRequestUriError(state=request.payload.state)
             raw_request_object = self.get_request_object(request_uri)
             if not raw_request_object:
@@ -230,33 +223,20 @@ class JWTAuthenticationRequest:
 
         return request_object
 
-    def get_client_request_uris(self, client: ClientMixin) -> list[str]:
-        """Return the approved ``request_uris`` registered for this client.
-
-        Validate destinations when registering URIs; client-supplied metadata
-        alone does not establish that a destination is safe to retrieve.
-        If not implemented, no URI is approved by default::
-
-            def get_client_request_uris(self, client):
-                return client.request_uris
-        """
-        return []
-
     def validate_request_uri(self, request_uri: str, client: ClientMixin) -> bool:
         """Return whether ``request_uri`` may be retrieved for this client.
 
-        Called before :meth:`get_request_object`. By default, only an exact
-        match with a URI returned by :meth:`get_client_request_uris` is allowed.
-        Override this method to support other trusted references, such as URNs
-        identifying request objects stored by the authorization server. Such
-        references must belong to the requesting client.
+        Called before :meth:`get_request_object`. The default rejects every URI;
+        applications supporting ``request_uri`` must implement a secure policy.
+        For network retrieval, prevent SSRF, including private destinations and
+        DNS rebinding. For references to locally stored request objects, validate
+        that the object belongs to the requesting client.
 
-        When server metadata ``require_request_uri_registration`` is true,
-        registration is also checked independently of this method.
-        Any custom policy that permits network retrieval must prevent SSRF,
-        including requests to private destinations and DNS rebinding.
+        OIDC URI registration is handled by
+        :class:`authlib.oidc.core.JWTAuthenticationRequest` independently of this
+        application policy.
         """
-        return request_uri in self.get_client_request_uris(client)
+        return False
 
     def get_request_object(self, request_uri: str):
         """Retrieve the request object at an approved ``request_uri``.
@@ -336,7 +316,6 @@ class JWTAuthenticationRequest:
                         "authorization_endpoint": ...,
                         "require_signed_request_object": ...,
                         "request_object_signing_alg_values_supported": ["RS256", ...],
-                        "require_request_uri_registration": True,
                     }
 
         """

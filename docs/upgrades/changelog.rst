@@ -21,12 +21,13 @@ Version 1.x.x
   ``get_request_object_signing_algorithms()`` cannot allow ``alg=none`` when
   either the server or the client requires signed request objects.
 - **Breaking change**: JAR ``request_uri`` is validated before retrieval and
-  defaults to accepting only URIs returned by ``get_client_request_uris()``.
-  Existing implementations must supply approved registered URIs or override
-  ``validate_request_uri()`` with a secure retrieval policy. Server metadata
-  ``require_request_uri_registration=true`` enforces registration even with
-  a custom validator. See :ref:`specs/rfc9101` for retrieval safeguards.
-
+  rejected by default. Applications must implement ``validate_request_uri()``
+  with an explicit secure retrieval policy. See :ref:`specs/rfc9101` for
+  retrieval safeguards.
+- Add ``authlib.oidc.core.OpenIDJWTAuthenticationRequest`` to enforce OIDC
+  ``require_request_uri_registration`` separately from the generic JAR
+  retrieval policy. Registered URIs must also pass the application's
+  validation policy. See :ref:`oidc_request_objects`.
 - Reject PEM and SSH key material used as symmetric JOSE keys, including
   PEM keys with leading whitespace, comments, or a byte-order mark and
   keys supplied through an oct JWK or an ``OctKey`` instance.

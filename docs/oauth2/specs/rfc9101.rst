@@ -31,20 +31,25 @@ configuration permits ``none``.
 Retrieving request objects
 --------------------------
 
-Implement ``get_client_request_uris(client)`` to return approved URIs registered
-for that client. The default ``validate_request_uri(request_uri, client)`` requires
-an exact match with this list, and rejects all references if the list is empty.
-Validation runs before ``get_request_object()`` is called::
+Implement ``validate_request_uri(request_uri, client)`` with an explicit policy
+for the request objects your server can safely retrieve. The default rejects all
+URIs, including URIs present in client metadata. Validation runs before
+``get_request_object()`` is called; rejected URIs return ``invalid_request_uri``::
 
     class JWTAuthenticationRequest(rfc9101.JWTAuthenticationRequest):
-        def get_client_request_uris(self, client):
-            return client.request_uris
+        def validate_request_uri(self, request_uri, client):
+            return is_approved_request_uri(request_uri, client)
 
-Applications may override ``validate_request_uri()`` to support other trusted
-references, such as URNs for request objects stored by the authorization server.
-Validate that stored objects belong to the requesting client. If server metadata
-``require_request_uri_registration`` is true, a registered URI is required even
-when a custom validator accepts it.
+``is_approved_request_uri`` is an application function: it must authorize the
+reference for this client and enforce the destination restrictions described
+below. Merely checking whether a URI was supplied by a client is insufficient.
+Applications using references to locally stored objects, such as URNs, must
+validate that those objects belong to the requesting client.
+
+The generic JAR extension does not implement OIDC URI registration. OIDC providers
+should use :class:`authlib.oidc.core.OpenIDJWTAuthenticationRequest`; see
+:ref:`oidc_request_objects`. It checks ``require_request_uri_registration`` and
+registered ``request_uris`` independently of the application's retrieval policy.
 
 For network retrieval, validate destinations during URI registration. Untrusted
 client metadata is not an approval policy. Require HTTPS, reject credentials in
