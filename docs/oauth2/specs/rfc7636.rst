@@ -8,11 +8,9 @@ RFC7636: Proof Key for Code Exchange by OAuth Public Clients
         by OAuth Public Clients implementation, guide on how to add it to
         OAuth 2.0 authorization server.
 
-This RFC7636_ is used to improve the security of Authorization Code flow
+This :rfc:`7636` is used to improve the security of Authorization Code flow
 for public clients by sending extra "code_challenge" and "code_verifier"
 to the authorization server.
-
-.. _RFC7636: https://tools.ietf.org/html/rfc7636
 
 .. module:: authlib.oauth2.rfc7636
 

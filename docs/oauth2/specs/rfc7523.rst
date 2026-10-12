@@ -9,9 +9,7 @@ RFC7523: JWT Profile for OAuth 2.0 Client Authentication and Authorization Grant
         JWT profile for OAuth 2.0 client authentication and authorization
         grants.
 
-This section contains the generic Python implementation of RFC7523_.
-
-.. _RFC7523: https://tools.ietf.org/html/rfc7523
+This section contains the generic Python implementation of :rfc:`7523`.
 
 .. module:: authlib.oauth2.rfc7523
 

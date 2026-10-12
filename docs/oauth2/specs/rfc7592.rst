@@ -3,7 +3,7 @@
 RFC7592: OAuth 2.0 Dynamic Client Registration Management Protocol
 ==================================================================
 
-This section contains the generic implementation of RFC7592_. OAuth 2.0 Dynamic
+This section contains the generic implementation of :rfc:`7592`. OAuth 2.0 Dynamic
 Client Registration Management Protocol allows developers edit and delete OAuth
 client via API through Authorization Server. This specification is an extension
 of :ref:`specs/rfc7591`.
@@ -14,8 +14,6 @@ of :ref:`specs/rfc7591`.
         Registration Management Protocol in Python with Authlib implementation.
 
 .. module:: authlib.oauth2.rfc7592
-
-.. _RFC7592: https://tools.ietf.org/html/rfc7592
 
 Client Configuration Endpoint
 -----------------------------

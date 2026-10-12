@@ -9,7 +9,7 @@ RFC8628: OAuth 2.0 Device Authorization Grant
 
 .. module:: authlib.oauth2.rfc8628
 
-This section contains the generic implementation of RFC8628_. OAuth 2.0 Device
+This section contains the generic implementation of :rfc:`8628`. OAuth 2.0 Device
 Authorization Grant is usually used when devices have limited input capabilities
 or lack a suitable browser, such as smart TVs, media consoles, picture frames,
 printers and etc.
@@ -104,8 +104,6 @@ Check points:
 1. route should match ``get_verification_uri`` in Device Authorization Endpoint
 2. user grant should match ``query_user_grant`` in Device Code Grant
 
-
-.. _RFC8628: https://tools.ietf.org/html/rfc8628
 
 
 API Reference
