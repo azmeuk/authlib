@@ -1,6 +1,6 @@
 """Identity Assertion JWT Authorization Grant (ID-JAG).
 
-A draft IETF extension (``draft-ietf-oauth-identity-chaining``) that
+A draft IETF extension (``draft-ietf-oauth-identity-assertion-authz-grant``) that
 enables cross-application access using identity assertions issued by an
 external enterprise IdP.
 

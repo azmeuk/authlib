@@ -38,6 +38,7 @@ extensions = [
 extlinks = {
     "issue": ("https://github.com/authlib/authlib/issues/%s", "issue #%s"),
     "PR": ("https://github.com/authlib/authlib/pull/%s", "pull request #%s"),
+    "draft": ("https://datatracker.ietf.org/doc/%s/", "%s"),
 }
 
 intersphinx_mapping = {
