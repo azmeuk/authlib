@@ -19,6 +19,52 @@ Request objects are optional, unless it is enforced by clients with the
 ``require_signed_request_object`` client metadata, or server-wide with the
 ``require_signed_request_object`` server metadata.
 
+Signature policy
+----------------
+
+When either the server or client requires signed request objects,
+``alg=none`` is rejected even if it appears in the server's supported algorithm
+list or is returned by ``get_request_object_signing_algorithms()``. Unsigned
+request objects remain supported when signatures are optional and the algorithm
+configuration permits ``none``.
+
+Retrieving request objects
+--------------------------
+
+Implement ``validate_request_uri(request_uri, client)`` with an explicit policy
+for the request objects your server can safely retrieve. The default rejects all
+URIs, including URIs present in client metadata. Validation runs before
+``get_request_object()`` is called; rejected URIs return ``invalid_request_uri``::
+
+    class JWTAuthenticationRequest(rfc9101.JWTAuthenticationRequest):
+        def validate_request_uri(self, request_uri, client):
+            return is_approved_request_uri(request_uri, client)
+
+``is_approved_request_uri`` is an application function: it must authorize the
+reference for this client and enforce the destination restrictions described
+below. Merely checking whether a URI was supplied by a client is insufficient.
+Applications using references to locally stored objects, such as URNs, must
+validate that those objects belong to the requesting client.
+
+The generic JAR extension does not implement OIDC URI registration. OIDC providers
+should use :class:`authlib.oidc.core.OpenIDJWTAuthenticationRequest`; see
+:ref:`oidc_request_objects`. It checks ``require_request_uri_registration`` and
+registered ``request_uris`` independently of the application's retrieval policy.
+
+For network retrieval, validate destinations during URI registration. Untrusted
+client metadata is not an approval policy. Require HTTPS, reject credentials in
+URLs, and restrict both hostnames and the IP addresses actually used for outbound
+connections. Block loopback, private, link-local, and other non-public destinations.
+Checking DNS once before an unrestricted HTTP request does not prevent DNS
+rebinding: the transport or network must enforce the destination restrictions.
+
+Disable redirects, set connection and read timeouts, enforce an overall retrieval
+deadline and response size limit, and require the response media type
+``application/oauth-authz-req+jwt``. The ``get_request_object()`` API documentation
+below includes an example of HTTP response limits. These safeguards apply even
+to registered URIs, whose DNS records can change. JWT signature validation occurs
+after retrieval and cannot prevent SSRF from the retrieval itself.
+
 API Reference
 -------------
 

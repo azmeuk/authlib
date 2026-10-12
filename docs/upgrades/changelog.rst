@@ -11,6 +11,23 @@ Version 1.x.x
 
 **Unreleased**
 
+- **Breaking change**: ID Tokens with ``nonce_supported=false`` no longer
+  bypass validation of the nonce saved by the client. Missing or mismatched
+  nonces are rejected in both synchronous and asynchronous integrations.
+  Provider compatibility exceptions must be explicitly configured by the
+  application, rather than enabled by an ID Token claim.
+- Enforce JAR ``require_signed_request_object`` independently of the signing
+  algorithm configuration. An explicit algorithm list or a customized
+  ``get_request_object_signing_algorithms()`` cannot allow ``alg=none`` when
+  either the server or the client requires signed request objects.
+- **Breaking change**: JAR ``request_uri`` is validated before retrieval and
+  rejected by default. Applications must implement ``validate_request_uri()``
+  with an explicit secure retrieval policy. See :ref:`specs/rfc9101` for
+  retrieval safeguards.
+- Add ``authlib.oidc.core.OpenIDJWTAuthenticationRequest`` to enforce OIDC
+  ``require_request_uri_registration`` separately from the generic JAR
+  retrieval policy. Registered URIs must also pass the application's
+  validation policy. See :ref:`oidc_request_objects`.
 - Reject PEM and SSH key material used as symmetric JOSE keys, including
   PEM keys with leading whitespace, comments, or a byte-order mark and
   keys supplied through an oct JWK or an ``OctKey`` instance.
