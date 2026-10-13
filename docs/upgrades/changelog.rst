@@ -15,19 +15,19 @@ Version 1.x.x
   bypass validation of the nonce saved by the client. Missing or mismatched
   nonces are rejected in both synchronous and asynchronous integrations.
   Provider compatibility exceptions must be explicitly configured by the
-  application, rather than enabled by an ID Token claim.
+  application, rather than enabled by an ID Token claim. :pr:`949`
 - Enforce JAR ``require_signed_request_object`` independently of the signing
   algorithm configuration. An explicit algorithm list or a customized
   ``get_request_object_signing_algorithms()`` cannot allow ``alg=none`` when
-  either the server or the client requires signed request objects.
+  either the server or the client requires signed request objects. :pr:`949`
 - **Breaking change**: JAR ``request_uri`` is validated before retrieval and
   rejected by default. Applications must implement ``validate_request_uri()``
   with an explicit secure retrieval policy. See :ref:`specs/rfc9101` for
-  retrieval safeguards.
+  retrieval safeguards. :pr:`949`
 - Add ``authlib.oidc.core.OpenIDJWTAuthenticationRequest`` to enforce OIDC
   ``require_request_uri_registration`` separately from the generic JAR
   retrieval policy. Registered URIs must also pass the application's
-  validation policy. See :ref:`oidc_request_objects`.
+  validation policy. See :ref:`oidc_request_objects`. :pr:`949`
 - Reject PEM and SSH key material used as symmetric JOSE keys, including
   PEM keys with leading whitespace, comments, or a byte-order mark and
   keys supplied through an oct JWK or an ``OctKey`` instance.
@@ -47,6 +47,11 @@ Version 1.x.x
 - The async OpenID Connect client returns ``None`` from ``parse_id_token()``
   when the token has no ``id_token``, like the sync client. It used to raise
   a ``KeyError``. :pr:`924`
+- OAuth 2 and assertion clients raise the HTTP error of the token endpoint
+  response when its body is not a JSON object, such as a plain-text 429 page
+  from a gateway. They used to raise a ``JSONDecodeError`` or a ``TypeError``.
+  A success response with such a body raises a ``ValueError``.
+  :issue:`928` :pr:`929`
 
 Version 1.8.0
 -------------
@@ -112,11 +117,6 @@ Version 1.8.0
   :issue:`798` :pr:`908`
 - Fix the OAuth 1.0a ``InsecureTransportError`` description telling users that
   OAuth 2 must use HTTPS. :pr:`919`
-- OAuth 2 and assertion clients raise the HTTP error of the token endpoint
-  response when its body is not a JSON object, such as a plain-text 429 page
-  from a gateway. They used to raise a ``JSONDecodeError`` or a ``TypeError``.
-  A success response with such a body raises a ``ValueError``.
-  :issue:`928` :pr:`929`
 
 Version 1.7.2
 -------------
