@@ -6,10 +6,10 @@ Changelog
 
 Here you can see the full list of changes between each Authlib release.
 
-Version 1.x.x
+Version 1.9.0
 -------------
 
-**Unreleased**
+**About to release**
 
 - **Breaking change**: ID Tokens with ``nonce_supported=false`` no longer
   bypass validation of the nonce saved by the client. Missing or mismatched
@@ -40,6 +40,10 @@ Version 1.x.x
   Assertions are rejected with ``invalid_grant`` when audiences are not
   configured, instead of issuing a deprecation warning and skipping
   audience value validation.
+- Require client authentication for ID-JAG token requests and bind the
+  assertion's ``client_id`` to the authenticated client. Missing or invalid
+  credentials and client mismatches no longer allow token issuance. Rejected
+  authentication and mismatches do not consume the assertion's replay identifier.
 - Add support for the Identity Assertion JWT Authorization Grant (ID-JAG),
   a draft extension to :rfc:`7523` for cross-application access using identity
   assertions issued by an external enterprise IdP.

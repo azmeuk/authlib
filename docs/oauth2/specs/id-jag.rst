@@ -51,7 +51,7 @@ The full flow:
 
         Client->>IdP: POST /token (token exchange)
         IdP-->>Client: 200 OK + ID-JAG
-        Client->>AS: POST /token (jwt-bearer)
+        Client->>AS: POST /token (jwt-bearer + client authentication)
         AS-->>Client: 200 OK + access token
         Client->>RS: GET /api (bearer token)
         RS-->>Client: 200 OK + resource
@@ -62,10 +62,13 @@ The full flow:
    user ID Token as ``subject_token``.
 2. The IdP returns the ID-JAG. It is a JWT signed by the IdP, with the
    ``typ: oauth-id-jag+jwt`` header.
-3. The client calls the Resource Authorization Server token endpoint with
+3. The client authenticates to the Resource Authorization Server token
+   endpoint with its own credentials and sends
    ``grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer`` and the ID-JAG
-   as ``assertion``. ``IDJAGGrant`` checks the signature with the IdP key,
-   then the ``typ`` header, the claims, the ``jti`` and the access policy.
+   as ``assertion``. ``IDJAGGrant`` validates client authentication, the
+   ``typ`` header, the IdP signature, and the claims. It binds the assertion's
+   ``client_id`` to the authenticated client before checking the ``jti``
+   and the access policy.
 4. The Resource Authorization Server returns an access token, without a
    refresh token.
 5. The client calls the API of the Resource Server with the access token, in
@@ -78,7 +81,8 @@ are examples.
 The key differences from standard RFC 7523:
 
 * The ``iss`` claim identifies the **IdP**, not the client.
-* A separate ``client_id`` claim identifies the **application**.
+* A separate ``client_id`` claim identifies the **application** and must match
+  the authenticated client redeeming the assertion.
 * The JWT ``typ`` header is ``oauth-id-jag+jwt`` to prevent type confusion.
 * ``sub``, ``jti``, and ``iat`` are **required** (optional in base RFC 7523).
 
@@ -91,8 +95,8 @@ Using IDJAGGrant
 :class:`~authlib.oauth2.rfc6749.TokenEndpointMixin`, **not** from
 :class:`~authlib.oauth2.rfc7523.JWTBearerGrant`.  The two grants share
 only the ``grant_type`` URI; the ID-JAG three-party model has different
-hooks (issuer-keyed key resolution, ``client_id``-keyed client lookup,
-``jti`` replay protection) than the RFC 7523 two-party model.
+hooks (issuer-keyed key resolution, user authorization, and ``jti`` replay
+protection) than the RFC 7523 two-party model.
 
 Register it with
 :meth:`~authlib.oauth2.rfc6749.AuthorizationServer.register_grant`,
@@ -117,9 +121,6 @@ after subclassing it to implement all required hooks::
                 raise InvalidGrantError(description="Untrusted issuer")
             return KeySet.import_key_set(idp.get_jwks())
 
-        def resolve_client_by_id(self, client_id):
-            return OAuthClient.query.filter_by(client_id=client_id).first()
-
         def authenticate_user(self, subject):
             return User.query.filter_by(sub=subject).first()
 
@@ -135,6 +136,37 @@ after subclassing it to implement all required hooks::
     # Register the grant
     authorization_server.register_grant(IDJAGGrant)
 
+
+Client Authentication
+~~~~~~~~~~~~~~~~~~~~~
+
+The ID-JAG proves the IdP's authorization; it does not authenticate the client
+presenting it. Token requests must authenticate using a method supported by the
+grant and configured for the registered client. The default is
+``client_secret_basic``. Missing or invalid client credentials return
+``invalid_client``. A valid authenticated client whose identifier differs from
+the assertion's ``client_id`` claim is rejected with ``invalid_grant``.
+
+Only the authenticated client model is used for grant permissions, application
+policy checks, and token issuance. Client lookup is handled by the authorization
+server's client authentication, using its configured ``query_client`` or a
+registered custom authentication method. The grant does not perform a second
+client lookup. Additional application restrictions belong in
+``check_id_jag_permission()``. Rejected authentication or a client mismatch does
+not record the assertion's ``jti`` as used.
+
+To support another client authentication method, override
+``TOKEN_ENDPOINT_AUTH_METHODS`` and configure the client registration to use that
+method. For example, to also support ``client_secret_post``::
+
+    from authlib.oauth2.drafts import IDJAGGrant as _IDJAGGrant
+
+    class IDJAGGrant(_IDJAGGrant):
+        TOKEN_ENDPOINT_AUTH_METHODS = ["client_secret_basic", "client_secret_post"]
+
+Custom methods, such as ``private_key_jwt``, must also be registered with the
+authorization server. The draft recommends confidential clients; ``none`` is
+not enabled by default.
 
 Creating ID-JAG Assertions
 ---------------------------
@@ -156,6 +188,32 @@ Unlike :meth:`JWTBearerGrant.sign`, ``subject`` and ``client_id`` are
 ``oauth-id-jag+jwt`` and a ``jti`` is auto-generated if not provided.
 
 
+Redeeming an ID-JAG
+-------------------
+
+Present the assertion along with the client's registered credentials. For a
+client using ``client_secret_basic``, an HTTP client can send the request as
+follows::
+
+    import requests
+
+    response = requests.post(
+        "https://resource-as.example.com/token",
+        auth=("app-456", client_secret),
+        data={
+            "grant_type": IDJAGGrant.GRANT_TYPE,
+            "assertion": assertion,
+        },
+        timeout=10,
+    )
+    response.raise_for_status()
+    token = response.json()
+
+The authenticated client ID (``app-456`` in this example) must match the
+``client_id`` claim in the assertion. Sending only the assertion, or adding a
+``client_id`` request parameter without credentials, is insufficient.
+
+
 Required Hooks
 --------------
 
@@ -170,9 +228,6 @@ Required Hooks
    * - ``resolve_issuer_key(issuer, headers)``
      - Fetch the IdP's public key(s) by issuer identifier.  ``headers``
        contains the JWT headers (including ``kid``) for key selection.
-   * - ``resolve_client_by_id(client_id)``
-     - Resolve a client model by the ``client_id`` claim.  Return ``None``
-       if not found.
    * - ``authenticate_user(subject)``
      - Look up the user by the ``sub`` claim value.
    * - ``check_jti(claims, jti)``
