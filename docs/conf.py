@@ -33,7 +33,11 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx_copybutton",
     "sphinx_design",
+    "sphinxcontrib.mermaid",
 ]
+
+# Shibuya inverts mermaid diagrams in dark mode.
+mermaid_dark_theme = "default"
 
 extlinks = {
     "issue": ("https://github.com/authlib/authlib/issues/%s", "issue #%s"),

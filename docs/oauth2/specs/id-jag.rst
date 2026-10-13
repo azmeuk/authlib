@@ -10,7 +10,7 @@ ID-JAG: Identity Assertion JWT Authorization Grant
 
 The **Identity Assertion JWT Authorization Grant (ID-JAG)** is an extension
 to :ref:`RFC 7523 <specs/rfc7523>` that enables cross-application access
-using identity assertions issued by an external enterprise IdP.
+using identity assertions issued by the IdP of an organization.
 It is defined in :draft:`draft-ietf-oauth-identity-assertion-authz-grant`.
 
 .. module:: authlib.oauth2.drafts
@@ -19,14 +19,61 @@ It is defined in :draft:`draft-ietf-oauth-identity-assertion-authz-grant`.
 How ID-JAG Works
 ----------------
 
-Standard RFC 7523 assumes a **2-party model** where the JWT issuer (``iss``)
-is the client itself.  ID-JAG introduces a **3-party model**:
+A client wants to access an API on behalf of a user:
 
-1. An enterprise **IdP** issues a signed JWT (the ID-JAG) to a client
-   application via OAuth 2.0 Token Exchange (RFC 8693).
-2. The **client** presents that JWT to a Resource Authorization Server using
-   the JWT Bearer grant type (``urn:ietf:params:oauth:grant-type:jwt-bearer``)
-   to obtain an access token.
+* The user belongs to an organization, and logs in with the organization IdP.
+* The client is registered at the IdP and at the Resource Authorization
+  Server of the API.
+* The Resource Authorization Server trusts the IdP for the users of this
+  organization.
+
+The client does not run an interactive authorization flow at the Resource
+Authorization Server. It asks the IdP for an ID-JAG instead. The IdP issues
+it if the organization policy allows this client to access this API for this
+user. The client then exchanges the ID-JAG for an access token at the
+Resource Authorization Server.
+
+The user authorization moves to the IdP, where the organization
+administrators control it.
+
+The full flow:
+
+.. mermaid::
+
+    sequenceDiagram
+        autonumber
+        participant Client
+        participant IdP as IdP Authorization Server
+        box rgba(80, 120, 220, 0.12) IDJAGGrant
+            participant AS as Resource Authorization Server
+        end
+        participant RS as Resource Server
+
+        Client->>IdP: POST /token (token exchange)
+        IdP-->>Client: 200 OK + ID-JAG
+        Client->>AS: POST /token (jwt-bearer)
+        AS-->>Client: 200 OK + access token
+        Client->>RS: GET /api (bearer token)
+        RS-->>Client: 200 OK + resource
+
+1. The client calls the IdP token endpoint with OAuth 2.0 Token Exchange
+   (:rfc:`8693`): ``grant_type=urn:ietf:params:oauth:grant-type:token-exchange``,
+   ``requested_token_type=urn:ietf:params:oauth:token-type:id-jag``, and the
+   user ID Token as ``subject_token``.
+2. The IdP returns the ID-JAG. It is a JWT signed by the IdP, with the
+   ``typ: oauth-id-jag+jwt`` header.
+3. The client calls the Resource Authorization Server token endpoint with
+   ``grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer`` and the ID-JAG
+   as ``assertion``. ``IDJAGGrant`` checks the signature with the IdP key,
+   then the ``typ`` header, the claims, the ``jti`` and the access policy.
+4. The Resource Authorization Server returns an access token, without a
+   refresh token.
+5. The client calls the API of the Resource Server with the access token, in
+   the ``Authorization: Bearer`` header.
+6. The Resource Server returns the protected resource.
+
+``IDJAGGrant`` implements steps 3 and 4. The ``/token`` and ``/api`` paths
+are examples.
 
 The key differences from standard RFC 7523:
 
@@ -49,13 +96,7 @@ hooks (issuer-keyed key resolution, ``client_id``-keyed client lookup,
 
 Register it with
 :meth:`~authlib.oauth2.rfc6749.AuthorizationServer.register_grant`,
-after subclassing it to implement all required hooks.
-
-
-Flask Example
-~~~~~~~~~~~~~
-
-::
+after subclassing it to implement all required hooks::
 
     from authlib.oauth2.rfc6749 import InvalidGrantError
     from authlib.oauth2.drafts import IDJAGGrant as _IDJAGGrant
@@ -90,53 +131,6 @@ Flask Example
 
         def check_id_jag_permission(self, client, user, scopes):
             return AccessPolicy.is_allowed(client, user, scopes)
-
-    # Register the grant
-    authorization_server.register_grant(IDJAGGrant)
-
-
-Django Example
-~~~~~~~~~~~~~~
-
-::
-
-    from authlib.oauth2.rfc6749 import InvalidGrantError
-    from authlib.oauth2.drafts import IDJAGGrant as _IDJAGGrant
-    from joserfc.jwk import KeySet
-
-    class IDJAGGrant(_IDJAGGrant):
-        def get_audiences(self):
-            return ["https://example.com/oauth/token"]
-
-        def resolve_issuer_key(self, issuer, headers):
-            try:
-                idp = TrustedIdP.objects.get(issuer=issuer)
-            except TrustedIdP.DoesNotExist:
-                raise InvalidGrantError(description="Untrusted issuer")
-            return KeySet.import_key_set(idp.jwks)
-
-        def resolve_client_by_id(self, client_id):
-            try:
-                return OAuthClient.objects.get(client_id=client_id)
-            except OAuthClient.DoesNotExist:
-                return None
-
-        def authenticate_user(self, subject):
-            try:
-                return User.objects.get(sub=subject)
-            except User.DoesNotExist:
-                return None
-
-        def check_jti(self, claims, jti):
-            if UsedJTI.objects.filter(jti=jti).exists():
-                return False
-            UsedJTI.objects.create(jti=jti, exp=claims["exp"])
-            return True
-
-        def check_id_jag_permission(self, client, user, scopes):
-            return AccessPolicy.objects.filter(
-                client=client, user=user
-            ).exists()
 
     # Register the grant
     authorization_server.register_grant(IDJAGGrant)

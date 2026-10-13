@@ -84,6 +84,7 @@ docs = [
     "sphinx>=7.0",
     "sphinx-design>=0.5",
     "sphinx-copybutton>=0.5",
+    "sphinxcontrib-mermaid>=2.1",
 ]
 
 [tool.setuptools.dynamic]
