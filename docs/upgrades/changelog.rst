@@ -8,6 +8,30 @@ Here you can see the full list of changes between each Authlib release.
 
 .. scriv-insert-here
 
+.. _changelog-1.9.1:
+
+Version 1.9.1 — 2026-10-14
+--------------------------
+
+Breaking changes
+~~~~~~~~~~~~~~~~
+
+- The RFC 7592 client configuration endpoint calls ``check_client()`` on the
+  registration access token. Tokens must implement
+  ``TokenMixin.check_client``.
+
+Security
+~~~~~~~~
+
+- ``authlib.jose`` rejects empty HMAC keys with a ``ValueError``. An empty key
+  used to let anyone forge HS256, HS384 and HS512 signatures. The minimum
+  ``joserfc`` version is now 1.6.8, which has the same check.
+  `GHSA-8m4g-j4wp-wgcg <https://github.com/authlib/authlib/security/advisories/GHSA-8m4g-j4wp-wgcg>`_
+- The RFC 7592 client configuration endpoint rejects registration access
+  tokens issued to another client, with an ``access_denied`` error. A client
+  could read, update or delete the registration of any other client.
+  `GHSA-c73q-w75p-j82v <https://github.com/authlib/authlib/security/advisories/GHSA-c73q-w75p-j82v>`_
+
 Version 1.9.0
 -------------
 
