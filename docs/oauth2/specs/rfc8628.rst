@@ -22,7 +22,7 @@ endpoint, while the user approves the request in a browser on another device:
     sequenceDiagram
         autonumber
         participant Device as Client (device)
-        participant User as User (browser)
+        participant User as User's browser<br/>(User Agent)
         participant AS as Authorization Server
         participant RS as Resource Server
 

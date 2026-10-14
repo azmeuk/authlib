@@ -130,7 +130,7 @@ type. For instance, with the authorization code grant:
 
     sequenceDiagram
         autonumber
-        participant User as User agent
+        participant User as User's browser<br/>(User Agent)
         participant Client
         box rgba(80, 120, 220, 0.12) JWTBearerClientAssertion
             participant AS as Authorization Server
