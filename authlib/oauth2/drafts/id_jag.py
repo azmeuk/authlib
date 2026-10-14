@@ -106,14 +106,15 @@ class IDJAGGrant(BaseGrant, TokenEndpointMixin):
 
         :param key: signing key (private key or shared secret)
         :param issuer: ``iss`` claim - identifies the IdP
-        :param audience: ``aud`` claim - the resource AS token endpoint
+        :param audience: ``aud`` claim - the resource AS issuer identifier
         :param subject: ``sub`` claim - the end user (required)
-        :param client_id: ``client_id`` claim - the application
+        :param client_id: ``client_id`` claim - the client identifier at the
+            resource AS
         :param jti: ``jti`` claim (auto-generated when *None*)
         :param issued_at: ``iat`` claim (defaults to now)
         :param expires_at: ``exp`` claim
         :param claims: additional claims dict
-        :param kwargs: forwarded to :func:`sign_jwt_bearer_assertion`
+        :param kwargs: forwarded to ``sign_jwt_bearer_assertion``
             (e.g. ``alg="RS256"``)
         :return: compact-serialised JWT string
         """
@@ -285,8 +286,8 @@ class IDJAGGrant(BaseGrant, TokenEndpointMixin):
     def get_audiences(self) -> list:
         """Return the list of valid ``aud`` values for this AS.
 
-        Typically the token endpoint URL and/or the AS issuer identifier.
-        The returned list must be non-empty; ``aud`` validation is
+        Per the ID-JAG draft, ``aud`` is the issuer identifier of the
+        Resource Authorization Server. The returned list must be non-empty; ``aud`` validation is
         mandatory for ID-JAG assertions.
         """
         raise NotImplementedError()

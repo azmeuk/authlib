@@ -78,21 +78,24 @@ The full flow:
 ``IDJAGGrant`` implements steps 3 and 4. The ``/token`` and ``/api`` paths
 are examples.
 
-The key differences from standard RFC 7523:
+The key differences from :class:`~authlib.oauth2.rfc7523.JWTBearerGrant`:
 
 * The ``iss`` claim identifies the **IdP**, not the client.
-* A separate ``client_id`` claim identifies the **application** and must match
-  the authenticated client redeeming the assertion.
+* A separate ``client_id`` claim identifies the **client**, by its identifier
+  at the Resource Authorization Server. It must match the authenticated client
+  redeeming the assertion.
+* The ``aud`` claim is the issuer identifier of the Resource Authorization
+  Server.
 * The JWT ``typ`` header is ``oauth-id-jag+jwt`` to prevent type confusion.
-* ``sub``, ``jti``, and ``iat`` are **required** (optional in base RFC 7523).
+* ``sub``, ``jti``, and ``iat`` are **required**. ``JWTBearerGrant`` does not
+  require them.
 
 
 Using IDJAGGrant
 ----------------
 
 ``IDJAGGrant`` is a standalone grant — it inherits directly from
-:class:`~authlib.oauth2.rfc6749.BaseGrant` and
-:class:`~authlib.oauth2.rfc6749.TokenEndpointMixin`, **not** from
+``BaseGrant`` and ``TokenEndpointMixin``, **not** from
 :class:`~authlib.oauth2.rfc7523.JWTBearerGrant`.  The two grants share
 only the ``grant_type`` URI; the ID-JAG three-party model has different
 hooks (issuer-keyed key resolution, user authorization, and ``jti`` replay
@@ -108,7 +111,8 @@ after subclassing it to implement all required hooks::
 
     class IDJAGGrant(_IDJAGGrant):
         def get_audiences(self):
-            return ["https://example.com/oauth/token"]
+            # The issuer identifier of this authorization server
+            return ["https://example.com"]
 
         def resolve_issuer_key(self, issuer, headers):
             """Fetch IdP public keys by issuer URL.
@@ -177,13 +181,13 @@ client implementations::
     assertion = IDJAGGrant.sign(
         key=private_key,
         issuer="https://idp.example.com",
-        audience="https://resource-as.example.com/token",
+        audience="https://resource-as.example.com",
         subject="user-123",
         client_id="app-456",
         alg="RS256",
     )
 
-Unlike :meth:`JWTBearerGrant.sign`, ``subject`` and ``client_id`` are
+Unlike ``JWTBearerGrant.sign()``, ``subject`` and ``client_id`` are
 **required** parameters.  The ``typ`` header is always set to
 ``oauth-id-jag+jwt`` and a ``jti`` is auto-generated if not provided.
 
@@ -224,7 +228,8 @@ Required Hooks
    * - Hook
      - Purpose
    * - ``get_audiences()``
-     - Return list of valid audience identifiers for this authorization server.
+     - Return the list of valid ``aud`` values: the issuer identifier of this
+       authorization server.
    * - ``resolve_issuer_key(issuer, headers)``
      - Fetch the IdP's public key(s) by issuer identifier.  ``headers``
        contains the JWT headers (including ``kid``) for key selection.
