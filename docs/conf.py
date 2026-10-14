@@ -38,6 +38,7 @@ extensions = [
 
 # Shibuya inverts mermaid diagrams in dark mode.
 mermaid_dark_theme = "default"
+mermaid_height = "auto"
 
 extlinks = {
     "issue": ("https://github.com/authlib/authlib/issues/%s", "issue #%s"),
