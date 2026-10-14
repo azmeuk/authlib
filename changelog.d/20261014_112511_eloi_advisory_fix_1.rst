@@ -1,0 +1,7 @@
+Security
+~~~~~~~~
+
+- ``authlib.jose`` rejects empty HMAC keys with a ``ValueError``. An empty key
+  used to let anyone forge HS256, HS384 and HS512 signatures. The minimum
+  ``joserfc`` version is now 1.6.8, which has the same check.
+  `GHSA-8m4g-j4wp-wgcg <https://github.com/authlib/authlib/security/advisories/GHSA-8m4g-j4wp-wgcg>`_
