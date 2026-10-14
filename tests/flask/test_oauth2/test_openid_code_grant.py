@@ -12,6 +12,7 @@ from joserfc.jwk import RSAKey
 from authlib.common.urls import url_decode
 from authlib.common.urls import url_encode
 from authlib.common.urls import urlparse
+from authlib.deprecate import AuthlibDeprecationWarning
 from authlib.oauth2.rfc6749.grants import (
     AuthorizationCodeGrant as _AuthorizationCodeGrant,
 )
@@ -535,7 +536,7 @@ def test_deprecated_get_jwt_config_signature(test_client, server, db, user):
     params = dict(url_decode(urlparse.urlparse(rv.location).query))
     code = params["code"]
 
-    with pytest.warns(DeprecationWarning, match="get_jwt_config.*version 1.8"):
+    with pytest.warns(AuthlibDeprecationWarning, match="get_jwt_config.*version 1.8"):
         test_client.post(
             "/oauth/token",
             data={

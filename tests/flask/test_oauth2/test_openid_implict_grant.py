@@ -4,6 +4,7 @@ from flask import current_app
 from authlib.common.urls import add_params_to_uri
 from authlib.common.urls import url_decode
 from authlib.common.urls import urlparse
+from authlib.deprecate import AuthlibDeprecationWarning
 from authlib.jose import JsonWebToken
 from authlib.oauth2.rfc6749.requests import BasicOAuth2Payload
 from authlib.oauth2.rfc6749.requests import OAuth2Request
@@ -369,5 +370,25 @@ def test_deprecated_get_jwt_config_signature(user):
     grant = DeprecatedImplicitGrant(request, client)
     token = {"scope": "openid", "expires_in": 3600}
 
-    with pytest.warns(DeprecationWarning, match="get_jwt_config.*version 1.8"):
+    with pytest.warns(AuthlibDeprecationWarning, match="get_jwt_config.*version 1.8"):
         grant.process_implicit_token(token)
+
+
+def test_deprecated_get_audiences(user):
+    """Using get_audiences(self, request) should emit an AuthlibDeprecationWarning."""
+
+    class DeprecatedImplicitGrant(_OpenIDImplicitGrant):
+        def get_client_claims(self, client):
+            return {"iss": "Authlib"}
+
+        def get_audiences(self, request):
+            return ["custom-audience"]
+
+    client = Client(user_id=user.id, client_id="deprecated-client")
+    request = OAuth2Request("POST", "https://server.test/authorize")
+    request.client = client
+    grant = DeprecatedImplicitGrant(request, None)
+
+    with pytest.warns(AuthlibDeprecationWarning, match="get_audiences.*version 1.8"):
+        claims = grant.get_compatible_claims(request)
+    assert claims["aud"] == ["custom-audience"]
