@@ -30,20 +30,21 @@ Version 1.9.0
   validation policy. See :ref:`oidc_request_objects`. :pr:`949`
 - Reject PEM and SSH key material used as symmetric JOSE keys, including
   PEM keys with leading whitespace, comments, or a byte-order mark and
-  keys supplied through an oct JWK or an ``OctKey`` instance.
+  keys supplied through an oct JWK or an ``OctKey`` instance. :pr:`945`
 - Use the client's allowed scope when validating and issuing OIDC implicit
   and hybrid responses. Clients without the ``openid`` scope can no longer
   obtain an ID Token by including it in the raw request, and custom token
-  generators receive only the allowed scope.
+  generators receive only the allowed scope. :pr:`945`
 - **Breaking change**: ``JWTBearerGrant.get_audiences()`` must return a
   non-empty list of audience identifiers for the authorization server.
   Assertions are rejected with ``invalid_grant`` when audiences are not
   configured, instead of issuing a deprecation warning and skipping
-  audience value validation.
+  audience value validation. :pr:`945`
 - Require client authentication for ID-JAG token requests and bind the
   assertion's ``client_id`` to the authenticated client. Missing or invalid
   credentials and client mismatches no longer allow token issuance. Rejected
   authentication and mismatches do not consume the assertion's replay identifier.
+  :pr:`955`
 - Add support for the Identity Assertion JWT Authorization Grant (ID-JAG),
   a draft extension to :rfc:`7523` for cross-application access using identity
   assertions issued by an external enterprise IdP.
@@ -56,6 +57,13 @@ Version 1.9.0
   from a gateway. They used to raise a ``JSONDecodeError`` or a ``TypeError``.
   A success response with such a body raises a ``ValueError``.
   :issue:`928` :pr:`929`
+- ``JsonWebSignature.deserialize_json()`` rejects a JWS JSON Serialization
+  with an empty ``signatures`` list. It used to accept it as valid. :pr:`938`
+- ``JWTClaims.validate()`` rejects boolean ``exp``, ``nbf`` and ``iat`` values
+  with an ``InvalidClaimError``. :issue:`641` :pr:`942`
+- OAuth 1.0 clients send each OAuth parameter once when the signature is
+  placed in the query string or the form body. Duplicated parameters used to
+  produce an invalid signature. :issue:`542` :pr:`943`
 
 Version 1.8.0
 -------------
