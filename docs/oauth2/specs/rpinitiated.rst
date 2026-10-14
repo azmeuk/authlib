@@ -152,6 +152,10 @@ Post-logout redirection only happens when:
 1. A ``post_logout_redirect_uri`` is provided
 2. The client is resolved (via ``id_token_hint`` or ``client_id``)
 3. The URI is registered in the client's ``post_logout_redirect_uris``
+4. A valid ``id_token_hint`` is provided, or
+   :meth:`EndSessionEndpoint.is_post_logout_redirect_uri_legitimate` returns
+   ``True``. By default, it returns ``False``: without ``id_token_hint``,
+   there is no redirection.
 
 If all conditions are met, ``EndSessionRequest.redirect_uri`` contains the
 validated URI (with ``state`` appended if provided).
