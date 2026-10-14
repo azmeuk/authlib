@@ -113,9 +113,20 @@ Now you can register your ``AuthorizationCodeGrant`` with the extension::
     from authlib.oauth2.rfc7636 import CodeChallenge
     server.register_grant(MyAuthorizationCodeGrant, [CodeChallenge(required=True)])
 
-If ``required=True``, code challenge is required for authorization code flow from public clients.
-If ``required=False``, it is optional, it will only valid the code challenge
-when clients send these parameters.
+With ``required=True``, public clients must use PKCE. The check happens at
+the token endpoint: a public client that sends no ``code_verifier`` gets an
+``invalid_request`` error. The authorization endpoint does not reject a request
+without ``code_challenge``, but the code it returns cannot be exchanged.
+
+With ``required=False``, PKCE is optional for all clients.
+
+In both modes:
+
+* If the authorization request contained a ``code_challenge``, the token
+  request must contain a matching ``code_verifier``.
+* If the authorization request contained no ``code_challenge``, a token
+  request with a ``code_verifier`` is rejected.
+* Confidential clients may use PKCE, but are not required to.
 
 Using ``code_challenge`` in Client
 ----------------------------------
