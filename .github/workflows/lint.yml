@@ -4,10 +4,7 @@ permissions:
   contents: read
 
 on:
-  push:
-    branches-ignore:
-    - 'wip-*'
-  pull_request:
+  workflow_call:
 
 jobs:
   prek:

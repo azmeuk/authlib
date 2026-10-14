@@ -1,17 +1,12 @@
 name: tests
 
 on:
-  push:
-    branches-ignore:
-    - 'wip-*'
-    paths-ignore:
-    - 'docs/**'
-    - 'README.md'
-  pull_request:
-    branches-ignore:
-    - 'wip-*'
-    paths-ignore:
-    - 'docs/**'
+  workflow_call:
+    secrets:
+      CODECOV_TOKEN:
+        required: false
+      SONAR_TOKEN:
+        required: false
 
 env:
   FORCE_COLOR: '1'
