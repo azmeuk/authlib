@@ -9,7 +9,7 @@ Here you can see the full list of changes between each Authlib release.
 Version 1.9.0
 -------------
 
-**About to release**
+**Released on Oct 14, 2026**
 
 - **Breaking change**: ID Tokens with ``nonce_supported=false`` no longer
   bypass validation of the nonce saved by the client. Missing or mismatched
