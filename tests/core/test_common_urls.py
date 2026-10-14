@@ -1,6 +1,7 @@
 import pytest
 
-from authlib.common.urls import extract_params, is_valid_url
+from authlib.common.urls import extract_params
+from authlib.common.urls import is_valid_url
 
 
 @pytest.mark.parametrize(
