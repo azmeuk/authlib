@@ -4,7 +4,7 @@ Contribution
 Thanks for reading this section, you have a good intention. Since you are
 interested in contributing to Authlib, there are few things you need to know:
 
-1. **All contributions are welcome**, as long as everyone involved is treated
+1. **Contributions are welcome**, as long as everyone involved is treated
    with respect.
 2. Your contribution may be rejected, but don't despair. It's just that this
    certain pull request doesn't fit Authlib. Be brave for a next contribution.
@@ -19,8 +19,8 @@ submit. You must understand it and answer review questions yourself.
 
 Autonomous agents must not interact with the project. A human must review
 every issue, pull request, comment and security report before it is submitted.
-Maintainers may close contributions from autonomous agents without review, and
-block their authors.
+Maintainers may close contributions from autonomous agents without review or
+reply, and block the accounts that submit them.
 
 Bug Reports
 -----------
