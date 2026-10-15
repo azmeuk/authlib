@@ -6,6 +6,10 @@ build-backend = "setuptools.build_meta"
 name = "Authlib"
 description = "The ultimate Python library in building OAuth and OpenID Connect servers and clients."
 authors = [{name = "Hsiaoming Yang", email="me@lepture.com"}]
+maintainers = [
+    {name = "Hsiaoming Yang", email = "me@lepture.com"},
+    {name = "Éloi Rivard", email = "eloi@yaal.coop"},
+]
 dependencies = [
     "cryptography>=45.0.1",
     "joserfc>=1.6.8",
