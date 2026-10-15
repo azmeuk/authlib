@@ -11,6 +11,17 @@ interested in contributing to Authlib, there are few things you need to know:
 3. Some issues will be labeled as **good first issue**, if you're new to
    Authlib, you may find these issues are a good start for contribution.
 
+AI-Assisted Contributions
+-------------------------
+
+You may use AI tools to help you contribute. You are responsible for what you
+submit. You must understand it and answer review questions yourself.
+
+Autonomous agents must not interact with the project. A human must review
+every issue, pull request, comment and security report before it is submitted.
+Maintainers may close contributions from autonomous agents without review, and
+block their authors.
+
 Bug Reports
 -----------
 
