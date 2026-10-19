@@ -190,17 +190,20 @@ Relying Parties can register their ``post_logout_redirect_uris`` through
 :ref:`RFC7591: OAuth 2.0 Dynamic Client Registration Protocol <specs/rfc7591>`.
 
 To support RP-Initiated Logout client metadata, add the claims class to your
-registration and configuration endpoints::
+registration and configuration endpoints.
+``MyClientRegistrationEndpoint`` is your subclass of
+:class:`~authlib.oauth2.rfc7591.ClientRegistrationEndpoint`::
 
-    from authlib import oidc
     from authlib.oauth2 import rfc7591
+    from authlib.oidc import registration
+    from authlib.oidc import rpinitiated
 
     authorization_server.register_endpoint(
-        ClientRegistrationEndpoint(
+        MyClientRegistrationEndpoint(
             claims_classes=[
                 rfc7591.ClientMetadataClaims,
-                oidc.registration.ClientMetadataClaims,
-                oidc.rpinitiated.ClientMetadataClaims,
+                registration.ClientMetadataClaims,
+                rpinitiated.ClientMetadataClaims,
             ]
         )
     )
