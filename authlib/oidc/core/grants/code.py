@@ -13,6 +13,7 @@ from joserfc import jwt
 
 from authlib._joserfc_helpers import import_any_key
 from authlib.oauth2.rfc6749 import OAuth2Request
+from authlib.oauth2.rfc6749.grants import AuthorizationCodeGrant
 
 from ..models import AuthorizationCodeMixin
 from ._legacy import LegacyMixin
@@ -99,7 +100,9 @@ class OpenIDToken(LegacyMixin):
         return token
 
     def __call__(self, grant):
-        grant.register_hook("after_create_token_response", self.process_token)
+        grant.register_hook(
+            self.process_token, after=AuthorizationCodeGrant.create_token_response
+        )
 
 
 class OpenIDCode(OpenIDToken):
@@ -148,12 +151,15 @@ class OpenIDCode(OpenIDToken):
         validate_nonce(grant.request, self.exists_nonce, self.require_nonce)
 
     def __call__(self, grant):
-        grant.register_hook("after_create_token_response", self.process_token)
+        grant.register_hook(
+            self.process_token, after=AuthorizationCodeGrant.create_token_response
+        )
         if is_openid_scope(grant.request.payload.scope):
             grant.register_hook(
-                "after_validate_authorization_request_payload",
                 self.validate_openid_authorization_request,
+                after=AuthorizationCodeGrant.validate_authorization_request_payload,
             )
             grant.register_hook(
-                "after_validate_consent_request", validate_request_prompt
+                validate_request_prompt,
+                after=AuthorizationCodeGrant.validate_consent_request,
             )

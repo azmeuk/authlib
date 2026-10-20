@@ -9,6 +9,7 @@ from authlib.common.encoding import urlsafe_b64encode
 from ..rfc6749 import InvalidGrantError
 from ..rfc6749 import InvalidRequestError
 from ..rfc6749 import OAuth2Request
+from ..rfc6749.grants.authorization_code import AuthorizationCodeGrant
 
 CODE_VERIFIER_PATTERN = re.compile(r"^[a-zA-Z0-9\-._~]{43,128}$")
 CODE_CHALLENGE_PATTERN = re.compile(r"^[a-zA-Z0-9\-._~]{43,128}$")
@@ -61,12 +62,12 @@ class CodeChallenge:
 
     def __call__(self, grant):
         grant.register_hook(
-            "after_validate_authorization_request_payload",
             self.validate_code_challenge,
+            after=AuthorizationCodeGrant.validate_authorization_request_payload,
         )
         grant.register_hook(
-            "after_validate_token_request",
             self.validate_code_verifier,
+            after=AuthorizationCodeGrant.validate_token_request,
         )
 
     def validate_code_challenge(self, grant, redirect_uri):
